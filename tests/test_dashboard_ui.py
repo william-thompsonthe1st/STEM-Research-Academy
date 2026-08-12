@@ -81,6 +81,13 @@ class DashboardTabTests(unittest.TestCase):
         self.assertIn("Planning only · no servo output", SCRIPT)
         self.assertIn(".actuator-card", STYLES)
 
+    def test_auxiliary_scout_status_traffic_yields_to_drive_traffic(self):
+        self.assertIn("if (scoutPressed[id].size) return;", SCRIPT)
+        self.assertIn("}, 5000);", SCRIPT)
+        self.assertIn("}, 1200);", SCRIPT)
+        self.assertIn("}, 80);", SCRIPT)
+        self.assertIn("controller.abort(), 140", SCRIPT)
+
     def test_video_and_controls_use_separate_grid_columns(self):
         self.assertIn('grid-template-columns: minmax(0, 1.55fr) minmax(340px, .9fr);', STYLES)
         self.assertNotIn('.drive-card { position: absolute', STYLES)
