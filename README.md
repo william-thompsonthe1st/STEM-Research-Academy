@@ -300,7 +300,7 @@ curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Researc
 The installer intentionally reboots. Read the script or use the clone method
 below first if your team prefers to inspect every install step locally.
 
-### Upgrade an existing Pi installation
+### Copy/paste Pi upgrade from the partner installation
 
 If the Pi already runs the partner project or another dashboard build, **do
 not reflash Raspberry Pi OS**. The 3TSahur installer replaces the installed
@@ -309,21 +309,37 @@ the same application path (`~/STEMResearchAcademy`) and configuration location
 (`/etc/stem-research-academy/config.env`), so do not attempt to run both
 dashboard versions at the same time.
 
-Before upgrading, run these commands as the normal Pi user to preserve the
-currently working partner build and its settings:
+Run this entire block as the normal Pi user. It creates timestamped backups
+when the application or config exists, then installs the current integration
+branch without performing a full Pi OS package upgrade:
 
 ```bash
-cp -a ~/STEMResearchAcademy ~/STEMResearchAcademy.partner-backup
-sudo cp /etc/stem-research-academy/config.env ~/stem-config.partner-backup.env
-```
+set -Eeuo pipefail
 
-Then install the tested 3TSahur/LARP integration branch. This command skips a
-full Raspberry Pi OS package upgrade for a faster field update; it still
-installs and validates the project before switching the dashboard:
+upgrade_stamp="$(date +%Y%m%d-%H%M%S)"
+app_backup="$HOME/STEMResearchAcademy.partner-backup-$upgrade_stamp"
+config_backup="$HOME/stem-config.partner-backup-$upgrade_stamp.env"
 
-```bash
+if [ -d "$HOME/STEMResearchAcademy" ]; then
+    cp -a -- "$HOME/STEMResearchAcademy" "$app_backup"
+    echo "Application backup: $app_backup"
+else
+    echo "No existing ~/STEMResearchAcademy directory; skipping app backup."
+fi
+
+if sudo test -f /etc/stem-research-academy/config.env; then
+    sudo cp -- /etc/stem-research-academy/config.env "$config_backup"
+    sudo chown "$(id -u):$(id -g)" "$config_backup"
+    echo "Configuration backup: $config_backup"
+else
+    echo "No existing config.env; skipping config backup."
+fi
+
 curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/agent/integrate-3tsahur-larp/installer/curl-install.sh | STEM_REPO_BRANCH=agent/integrate-3tsahur-larp STEM_SKIP_OS_UPGRADE=1 bash
 ```
+
+No Raspberry Pi OS reflash is needed; the installer validates the replacement
+and intentionally reboots the Pi when it finishes.
 
 After the Pi reboots, expect these intentional changes:
 
