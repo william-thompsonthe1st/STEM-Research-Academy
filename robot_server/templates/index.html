@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="server-time-ms" content="{{ server_time_ms }}">
   <title>3TSahur Swarm Control</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=6) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=7) }}">
 </head>
 <body>
   <main class="dashboard">
@@ -14,7 +14,11 @@
         <p class="eyebrow">3TSahur-Swarm local command center</p>
         <h1>Reconnaissance dashboard</h1>
       </div>
-      <div class="dashboard-note"><span>One active camera stream</span><span>Watchdog-protected controls</span></div>
+      <div class="dashboard-note" aria-label="Dashboard operating safeguards">
+        <span class="note-live"><i></i> Local control</span>
+        <span>One active camera stream</span>
+        <span>Watchdog-protected controls</span>
+      </div>
     </header>
 
     <div class="robot-tabs" role="tablist" aria-label="Robot dashboards">

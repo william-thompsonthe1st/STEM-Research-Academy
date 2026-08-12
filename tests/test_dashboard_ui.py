@@ -93,6 +93,12 @@ class DashboardTabTests(unittest.TestCase):
         self.assertNotIn('.drive-card { position: absolute', STYLES)
         self.assertNotIn('.scout-controls { position: absolute', STYLES)
 
+    def test_visual_refresh_remains_static_and_lightweight(self):
+        self.assertIn('class="note-live"', TEMPLATE)
+        self.assertIn('.dashboard-header::after', STYLES)
+        self.assertNotIn('backdrop-filter:', STYLES)
+        self.assertNotIn('filter: saturate(', STYLES)
+
 
 if __name__ == "__main__":
     unittest.main()
