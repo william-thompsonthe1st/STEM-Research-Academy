@@ -8,7 +8,9 @@ systems:
 2. the Inland ESP32-CAM, which provides the scout's Wi-Fi video feed.
 
 They are companion devices, not one combined circuit. The camera must never
-be wired to motor outputs or treated as a motor-controller accessory.
+be wired to motor outputs or treated as a motor-controller accessory. During
+normal operation, do **not** connect the camera's UART, GPIO, or camera pins to
+the ECHO controller.
 
 ```mermaid
 flowchart LR
@@ -40,10 +42,14 @@ flowchart LR
   5 V rail. Do **not** connect the raw LARP battery pack to the camera's `5V`
   or `3.3V` pin.
 - If one battery system supplies both boards, use a proper 5 V regulator for
-  the camera and make the supply grounds common. Keep motor-current wiring
-  away from the camera's short power leads.
-- If a separate USB power bank powers the camera, do not add a data wire to
-  the ECHO board. The camera still joins the same Wi-Fi network.
+  the camera and make the supply grounds common at the shared power reference.
+  Keep motor-current wiring away from the camera's short power leads.
+- If an electrically separate supply powers the camera, do not add a ground or
+  data wire merely to join it to the ECHO board. The camera still joins the
+  same Wi-Fi network.
+- Never connect the camera supply's positive output to the ECHO controller or
+  Raspberry Pi 5 V rail. A common ground, when required by a shared supply, is
+  not permission to connect the positive rails together.
 - Mount the antenna/camera where metal, battery cells, and motor leads do not
   obstruct the antenna. Secure the ribbon cable and provide strain relief.
 
@@ -119,9 +125,9 @@ Flash the two firmware targets independently:
 | Scout B | `ROBOT_ID = 'B'` | `CAMERA_ID = 'B'` | `http://larp-b-cam.local/stream` |
 
 Both sketches must contain the exact same `WIFI_SSID` and `WIFI_PASSWORD`.
-There is intentionally no UART, I2C, SPI, or motor-control link between the
-camera and ECHO controller after flashing. Their only runtime relationship is
-their paired `A`/`B` identity and shared Wi-Fi network.
+There is intentionally no UART, I2C, SPI, GPIO, camera-pin, or motor-control
+link between the camera and ECHO controller after flashing. Their only runtime
+relationship is their paired `A`/`B` identity and shared Wi-Fi network.
 
 ## First field test
 

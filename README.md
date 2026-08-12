@@ -312,13 +312,60 @@ The dashboard now includes **Gimbal mode** (`G`, then arrow keys) and a **ramp t
 
 ### LARP scouts and cameras
 
-Each scout contains:
+Each scout uses **two separate microcontrollers**:
 
 - An ECHO robot controller running the LARP drive firmware. The retained motor IDs are left = `1`, right = `6`.
 - An Inland ESP32-CAM flashing the LARP camera firmware, configured as an AI Thinker-compatible pin layout.
-- The same Wi-Fi SSID/password as the Pi hotspot.
 
-The ESP32-CAM board variations can differ. Check the board silk screen and camera connector before powering it. The camera is a separate Wi-Fi video node: retain the ECHO controller's existing motor wiring, power the camera from a regulated 5 V branch, and pair `ROBOT_ID` with `CAMERA_ID` (`A`/`A`, `B`/`B`). See the [LARP camera/controller integration guide](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md) for the complete safe-power, flashing, Wi-Fi, and field-test procedure.
+Both are configured with the same Wi-Fi SSID/password as the Pi hotspot.
+
+The ESP32-CAM is **not wired to the ECHO board for normal operation**. Do not
+connect its `U0R`/`U0T`, camera pins, GPIO pins, or 5 V positive supply to the
+ECHO controller. Keep the ECHO motor wiring unchanged. The two boards find the
+Pi independently over Wi-Fi and appear together only because their `A` or `B`
+identity matches.
+
+```mermaid
+flowchart LR
+    M["Fused, switched motor power"] --> E["ECHO controller<br/>existing motor wiring<br/>ROBOT_ID A or B"]
+    C5["Separate regulated 5 V<br/>at least 1 A"] --> C["Inland ESP32-CAM<br/>CAMERA_ID A or B"]
+    E -. "2.4 GHz Wi-Fi<br/>drive + heartbeat" .-> P["Pi hotspot<br/>3TSahur-Swarm"]
+    C -. "2.4 GHz Wi-Fi<br/>/status + /stream" .-> P
+    E ~~~ N["NO UART, GPIO, camera-pin,<br/>or positive-rail connection"]
+    N ~~~ C
+```
+
+Power the camera from a stable, separately regulated **5 V supply rated for at
+least 1 A**. Motor power stays separately fused and switched. If both systems
+are fed from one battery, their grounds meet at the shared power reference; if
+the camera uses an electrically separate supply, do not add a ground or data
+wire merely to join the boards. **Never join the separate camera-supply
+positive to ECHO or Pi 5 V.** Secure the camera, ribbon cable, antenna, and
+power leads away from wheels, gears, motor wires, and metal that blocks the
+antenna.
+
+Set up each scout in this order:
+
+1. With the camera disconnected, flash the ECHO controller independently.
+   Use `ROBOT_ID = 'A'` for Scout A or `'B'` for Scout B and the Pi hotspot
+   credentials. Retain its existing motor connections.
+2. On the bench, flash the ESP32-CAM independently with the safe procedure
+   below. Match `CAMERA_ID` to that scout: `A` with ECHO `A`, or `B` with ECHO
+   `B`; use the same hotspot credentials.
+3. Remove all temporary camera upload wiring, including the GPIO 0 boot jumper.
+   Mount the camera securely and connect only its regulated 5 V and GND power.
+4. Boot the Pi first and wait for `3TSahur-Swarm`; then power the ECHO controller
+   and camera. Keep the wheels raised or motor power removed for this check.
+5. Confirm the matching LARP dashboard tab shows the ECHO heartbeat/status.
+   From a device on the hotspot, open `http://larp-a-cam.local/status` and
+   `http://larp-a-cam.local/stream` for A, or replace `a` with `b` for B.
+6. Open the matching dashboard tab and confirm its video. Only then perform the
+   raised-wheel direction and watchdog test.
+
+ESP32-CAM board variants can differ, so verify that the Inland silk-screen and
+pinout match AI Thinker before powering or flashing it. See the [LARP
+camera/controller integration guide](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md)
+for the complete safe-power, flashing, Wi-Fi, and field-test procedure.
 
 ## Install on the Raspberry Pi
 
