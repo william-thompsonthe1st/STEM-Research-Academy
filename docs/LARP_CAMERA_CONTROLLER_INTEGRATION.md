@@ -73,8 +73,9 @@ is being used as a serial bridge, not as an Arduino programmer.
 | --- | --- |
 | ESP32-CAM with built-in USB | Use its USB port directly. |
 | USB-to-UART adapter with 3.3 V logic | Preferred; use the wiring below. |
-| Arduino with a known 3.3 V UART interface | Usable as a bridge if its main microcontroller is held in reset/disabled. |
-| Classic 5 V Uno or 5 V Nano with only jumper wires | **Do not connect its TX directly to ESP32-CAM `U0R`.** Use a level shifter/divider or a 3.3 V adapter instead. |
+| Arduino with a known 3.3 V UART interface | Usable as a bridge if its documented USB/UART path can be isolated. |
+| Arduino UNO R4 Minima/WiFi | Usable only with a serial-relay sketch and a two-channel 5 V-to-3.3 V UART level shifter; see [ESP32-CAM setup](ESP32_CAM_SETUP.md#flash-through-an-arduino-uno-r4). Do not hold the R4 in reset. |
+| Other 5 V Uno or 5 V Nano with only jumper wires | **Do not connect its TX directly to ESP32-CAM `U0R`.** Use a properly designed bidirectional level-shifting interface or a 3.3 V adapter instead. |
 | 3D Buffalo ECHO controller | Do not repurpose it as a programmer without its exact board schematic and a documented USB-UART interface. It must remain the LARP drive controller. |
 
 For any bridge, the terminal's actual transmit line must reach ESP32-CAM
