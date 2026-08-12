@@ -111,6 +111,18 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn('DRIVE_WATCHDOG_SECONDS=0.20', self.installer)
         self.assertNotIn('fullscreen robot dashboard', self.installer)
 
+    def test_curl_bootstrap_delegates_to_the_versioned_installer(self):
+        bootstrap = (INSTALLER.parent / "curl-install.sh").read_text(encoding="utf-8")
+        self.assertIn("installer/install.sh", bootstrap)
+        self.assertIn("STEM_REPO_BRANCH", bootstrap)
+        self.assertIn("without sudo", bootstrap)
+
+    def test_optional_vision_installer_uses_an_isolated_environment(self):
+        vision_installer = (INSTALLER.parent / "install-vision.sh").read_text(encoding="utf-8")
+        self.assertIn(".vision-venv", vision_installer)
+        self.assertIn('"ultralytics>=8.3,<9" ncnn', vision_installer)
+        self.assertIn('model.export(format="ncnn"', vision_installer)
+
 
 if __name__ == "__main__":
     unittest.main()
