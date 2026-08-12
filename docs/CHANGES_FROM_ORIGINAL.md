@@ -18,13 +18,12 @@ single-file prototype.
   station hostname and labels.
 - Added a dedicated Inland ESP32-CAM firmware package with mDNS MJPEG streams.
 
-## Confirmed motor correction
+## Mecanum motor mapping
 
-The partner base assumed Driver 1's second channel was rear-left and Driver
-2's first channel was front-right. The confirmed physical arrangement is front
-axle on Driver 1 and rear axle on Driver 2. `robot_server/motor.py` now maps
-front-left `5/6`, front-right `16/19`, rear-left `20/21`, rear-right `26/13`.
-The associated test now enforces it.
+The Pi mecanum GPIO layout is intentionally unchanged from the partner base:
+front-left `5/6`, rear-left `16/19`, front-right `20/21`, and rear-right
+`13/26`. `robot_server/motor.py` and its associated simulation test enforce
+that exact assignment.
 
 ## Documentation and verification
 

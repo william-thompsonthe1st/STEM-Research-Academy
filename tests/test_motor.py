@@ -70,9 +70,9 @@ class MecanumMixTests(unittest.TestCase):
         gpio = FakeGPIO()
         drive = MecanumDrive(gpio_module=gpio)
         drive.drive(1, 0, 0, 0.75)
-        for forward_pin in (5, 16, 20, 26):
+        for forward_pin in (5, 16, 20, 13):
             self.assertEqual(gpio.pwms[forward_pin].duty, 75)
-        for reverse_pin in (6, 19, 21, 13):
+        for reverse_pin in (6, 19, 21, 26):
             self.assertFalse(gpio.pwms[reverse_pin].running)
         self.assertEqual(sum(pwm.running for pwm in gpio.pwms.values()), 4)
         drive.close()

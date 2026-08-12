@@ -14,13 +14,13 @@ class MotorPins:
     reverse: int
 
 
-# BCM numbering. Driver 1 controls the front axle and Driver 2 controls the
-# rear axle. Do not share a GPIO input between driver boards.
+# BCM numbering. This wheel assignment intentionally matches the partner
+# integration base. Do not share a GPIO input between driver boards.
 DEFAULT_MOTOR_PINS = {
     "front_left": MotorPins(5, 6),       # Driver 1, Motor A
-    "front_right": MotorPins(16, 19),    # Driver 1, Motor B
-    "rear_left": MotorPins(20, 21),      # Driver 2, Motor A
-    "rear_right": MotorPins(26, 13),     # Driver 2, Motor B
+    "rear_left": MotorPins(16, 19),      # Driver 1, Motor B
+    "front_right": MotorPins(20, 21),    # Driver 2, Motor A
+    "rear_right": MotorPins(13, 26),     # Driver 2, Motor B (wired reversed)
 }
 
 

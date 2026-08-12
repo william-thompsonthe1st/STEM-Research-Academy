@@ -14,8 +14,8 @@ hardware-independent test groups were executed successfully (18 tests total):
 | `test_server.py` | hub API, expiry/sequence safety, dashboard, scout proxy behavior | not run locally — Flask unavailable in desktop runtime |
 
 The test harness uses fake GPIO/PWM implementations and mocked network/camera
-interfaces. It verifies the confirmed forward pins `5, 16, 20, 26` and reverse
-pins `6, 19, 21, 13` for the four wheels.
+interfaces. It verifies the partner-base forward pins `5, 16, 20, 13` and reverse
+pins `6, 19, 21, 26` for the four wheels.
 
 The unexecuted Flask route tests are included in the repository and can be run
 on the Pi after the installer installs Flask. This desktop sandbox does not bundle
