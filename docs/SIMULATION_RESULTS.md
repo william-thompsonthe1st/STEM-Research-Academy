@@ -22,8 +22,8 @@ reverse pins `6, 19, 21, 26` for the four mecanum wheels.
 ## Control-path timing simulation
 
 Using the Flask test client and simulated GPIO/network interfaces, 100 current
-3TSahur drive commands averaged **0.130 ms** per request (95th percentile
-**0.166 ms**, maximum **1.640 ms**). One hundred immediate LARP proxy commands
+3TSahur drive commands averaged **0.131 ms** per request (95th percentile
+**0.171 ms**, maximum **1.562 ms**). One hundred immediate LARP proxy commands
 averaged **0.125 ms** (95th percentile **0.166 ms**, maximum **0.273 ms**).
 
 This confirms the dashboard/API control path does not contain a multi-second
