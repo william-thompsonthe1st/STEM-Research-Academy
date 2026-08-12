@@ -208,6 +208,41 @@ The ESP32-CAM board variations can differ. Check the board silk screen and camer
 
 ## Install on the Raspberry Pi
 
+### Fast install (recommended after review)
+
+On a current Raspberry Pi OS image with internet access, run this as the
+normal Pi user—not `root`. It downloads the repository's installer, which
+then performs package installation, preflight validation, atomic app
+replacement, hotspot/service setup, and reboot.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/curl-install.sh | bash
+```
+
+To install a reviewed non-default branch, send the branch name to **bash**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/agent/integrate-3tsahur-larp/installer/curl-install.sh | STEM_REPO_BRANCH=agent/integrate-3tsahur-larp bash
+```
+
+The installer intentionally reboots. Read the script or use the clone method
+below first if your team prefers to inspect every install step locally.
+
+### Optional one-command YOLO install
+
+Install the base hub first. Then, if you want pretrained person detection,
+run this separate command as the normal Pi user. It creates `.vision-venv`,
+installs Ultralytics/NCNN, downloads the pretrained `yolo11n` weights, and
+exports the 320px NCNN model used by the dashboard.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/install-vision.sh | bash
+```
+
+YOLO remains optional: do not install it until the base dashboard, cameras,
+and controls have passed their physical checks. It is never required for motor
+control or LARP operation.
+
 1. Flash a current Raspberry Pi OS image and complete its first-boot setup. Use the normal Pi user; do **not** run the installer as root.
 2. Connect the C270, motor-driver logic ground, and the GPIO leads above. Keep motor power disconnected for the first software boot.
 3. Clone this repository on the Pi and run the installer:
@@ -222,6 +257,27 @@ The ESP32-CAM board variations can differ. Check the board silk screen and camer
 5. Join the hotspot, open the dashboard at `http://10.42.0.1`, and test motors with the robot elevated.
 
 Default hotspot credentials are `3TSahur-Swarm` / `roboswarm1`. Change them before any public demonstration: update `/etc/stem-research-academy/config.env` on the Pi and update both LARP firmware sketches to match, then restart the dashboard. See the detailed [setup guide](docs/SETUP.md).
+
+### Retained mecanum and LARP operating notes
+
+These proven operational patterns come from the partner integration base and
+remain compatible with the 3TSahur/LARP naming and dashboard:
+
+- The Pi prefers the C270's persistent `/dev/v4l/by-id/` capture node, verifies
+  it returns actual frames, then falls back to `/dev/video*`. Use
+  `v4l2-ctl --list-devices` when the camera health panel shows unavailable.
+- First mecanum test: raise every wheel, choose 20% speed, tap `W`, and verify
+  every wheel pushes forward. Do not floor-test strafe until wheel placement is
+  confirmed. Never change GPIO pins to correct a mechanical wheel/plug swap.
+- LARP drive boards use retained ECHO motor IDs left=`1`, right=`6`, and expose
+  `/drive`, `/stop`, `/status`, and `/motion`. Their independent bench pages
+  are available at `http://larp-a.local` and `http://larp-b.local` when mDNS
+  works.
+- Each LARP sends UDP heartbeats and HTTP registration to the Pi. Its firmware
+  stops motors after 500 ms without a valid command; that is a second safety
+  layer behind the browser and Pi watchdogs.
+- The ESP32-CAM is a separate video node. A camera stream failure does not
+  prevent the corresponding LARP drive controller from receiving commands.
 
 ## Configure the system
 
@@ -336,7 +392,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **49 tests successfully**: dashboard/UI,
+The recorded desktop simulation ran **51 tests successfully**: dashboard/UI,
 mecanum mixing, camera discovery/profile isolation, firmware invariants,
 scout registry, Flask control APIs, mission events, snapshots, and optional
 vision failure handling. Hardware validation is still required for motor
