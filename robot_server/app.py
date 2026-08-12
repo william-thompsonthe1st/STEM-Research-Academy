@@ -13,8 +13,11 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import deque
+from pathlib import Path
+from uuid import uuid4
 
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 
 from .camera import CameraStream
 from .motor import MecanumDrive
@@ -71,6 +74,28 @@ vision = VisionManager({
     "larp-a": lambda: _scout_frame("a"),
     "larp-b": lambda: _scout_frame("b"),
 })
+events: deque[dict] = deque(maxlen=120)
+event_lock = threading.Lock()
+snapshot_dir = Path(os.environ.get("SNAPSHOT_DIR", "/tmp/3tsahur-snapshots"))
+
+
+def record_event(kind: str, source: str, message: str) -> dict:
+    event = {"id": uuid4().hex[:10], "at_ms": round(time.time() * 1000), "kind": kind[:32], "source": source[:16], "message": message[:160]}
+    with event_lock:
+        events.appendleft(event)
+    return event
+
+
+def _snapshot_bytes(source: str) -> bytes | None:
+    if source == "3tsahur":
+        return camera.latest_jpeg()
+    scout_id = {"larp-a": "a", "larp-b": "b"}.get(source)
+    if not scout_id:
+        return None
+    with urllib.request.urlopen(SCOUTS[scout_id]["camera"], timeout=0.75) as response:
+        raw = response.read(128_000)
+    start, end = raw.find(b"\xff\xd8"), raw.find(b"\xff\xd9")
+    return raw[start:end + 2] if start >= 0 and end > start else None
 
 
 def _scout_request(scout_id: str, path: str, query: dict | None = None) -> dict:
@@ -133,6 +158,36 @@ def create_app() -> Flask:
             return jsonify(vision.snapshot(source))
         except KeyError:
             return jsonify(error="Unknown vision source"), 404
+
+    @app.get("/api/events")
+    def event_list():
+        with event_lock:
+            return jsonify(events=list(events))
+
+    @app.post("/api/events")
+    def add_event():
+        payload = request.get_json(silent=True) or {}
+        return jsonify(record_event(str(payload.get("kind", "note")), str(payload.get("source", "dashboard")), str(payload.get("message", "Operator event"))))
+
+    @app.post("/api/snapshots/<source>")
+    def snapshot(source: str):
+        if source not in ("3tsahur", "larp-a", "larp-b"):
+            return jsonify(error="Unknown snapshot source"), 404
+        try:
+            image = _snapshot_bytes(source)
+            if not image:
+                raise RuntimeError("No JPEG frame received")
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            name = f"{round(time.time() * 1000)}-{source}.jpg"
+            (snapshot_dir / name).write_bytes(image)
+            event = record_event("snapshot", source, f"Saved {source} camera snapshot")
+            return jsonify(ok=True, url=f"/snapshots/{name}", event=event)
+        except Exception as error:
+            return jsonify(error=f"Snapshot unavailable: {error}"), 503
+
+    @app.get("/snapshots/<path:name>")
+    def serve_snapshot(name: str):
+        return send_from_directory(snapshot_dir, name)
 
     @app.post("/api/drive")
     def command_drive():
