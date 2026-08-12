@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-REPO_URL="${STEM_REPO_URL:-https://github.com/AloeVeraZ/CityTechClubProjects.git}"
+REPO_URL="${STEM_REPO_URL:-https://github.com/william-thompsonthe1st/STEM-Research-Academy.git}"
 REPO_BRANCH="${STEM_REPO_BRANCH:-main}"
-SOURCE_SUBDIR="stem-research-academy"
+SOURCE_SUBDIR="${STEM_SOURCE_SUBDIR:-.}"
 APP_DIR="${STEM_APP_DIR:-$HOME/STEMResearchAcademy}"
 VENV_DIR="$APP_DIR/.venv"
 CONFIG_DIR="/etc/stem-research-academy"
@@ -203,7 +203,8 @@ tree = json.loads(download(tree_url))
 if tree.get("truncated"):
     raise RuntimeError("GitHub returned a truncated repository tree")
 
-prefix = source_subdir.rstrip("/") + "/"
+source_subdir = source_subdir.strip("/")
+prefix = f"{source_subdir}/" if source_subdir else ""
 files = [entry["path"] for entry in tree.get("tree", []) if entry.get("type") == "blob" and entry["path"].startswith(prefix)]
 if not files:
     raise RuntimeError(f"{source_subdir} was not found in {repo}@{branch}")
@@ -231,14 +232,19 @@ if [ -z "$DOWNLOAD_ROOT" ]; then
     git -c http.version=HTTP/1.1 -c core.compression=0 clone \
         --depth 1 --filter=blob:none --no-checkout --branch "$REPO_BRANCH" --single-branch \
         "$REPO_URL" "$GIT_ROOT"
-    git -C "$GIT_ROOT" sparse-checkout init --cone
-    git -C "$GIT_ROOT" sparse-checkout set "$SOURCE_SUBDIR"
+    if [ "$SOURCE_SUBDIR" != "." ] && [ -n "$SOURCE_SUBDIR" ]; then
+        git -C "$GIT_ROOT" sparse-checkout init --cone
+        git -C "$GIT_ROOT" sparse-checkout set "$SOURCE_SUBDIR"
+    fi
     git -C "$GIT_ROOT" checkout "$REPO_BRANCH"
     DOWNLOAD_ROOT="$GIT_ROOT"
 fi
 
-FRESH_SOURCE="$DOWNLOAD_ROOT/$SOURCE_SUBDIR"
-[ -f "$FRESH_SOURCE/run.py" ] || fail "$SOURCE_SUBDIR was not found in the downloaded repository."
+FRESH_SOURCE="$DOWNLOAD_ROOT"
+if [ "$SOURCE_SUBDIR" != "." ] && [ -n "$SOURCE_SUBDIR" ]; then
+    FRESH_SOURCE="$DOWNLOAD_ROOT/$SOURCE_SUBDIR"
+fi
+[ -f "$FRESH_SOURCE/run.py" ] || fail "Robot project was not found in the downloaded repository."
 python3 -m compileall -q "$FRESH_SOURCE/robot_server" "$FRESH_SOURCE/run.py"
 
 say "Building and validating the replacement application..."
