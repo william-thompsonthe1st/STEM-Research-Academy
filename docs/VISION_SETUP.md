@@ -2,7 +2,7 @@
 
 This guide prepares the 3TSahur Raspberry Pi for **pretrained person detection**. It uses Ultralytics YOLO11 Nano (`yolo11n`), whose standard weights are trained on the COCO dataset. No dataset collection, labeling, or training is required.
 
-> Current repository status: the dashboard and robot-control service do not yet launch a YOLO process. This guide installs and verifies the model in an isolated environment, ready for a future optional dashboard integration. It does not change the motor GPIO mapping, LARP firmware, or control service.
+> Current repository status: vision is optional and starts only after an operator enables it for a camera. It runs in an isolated background worker; it does not change the motor GPIO mapping, LARP firmware, or control service.
 
 ## What the model does
 
@@ -57,6 +57,12 @@ PY
 
 Keep the resulting `yolo11n_ncnn_model/` directory with the application. If the Pi must be offline later, create the export once on a connected Pi and retain that directory; neither weights nor a dataset need to be downloaded again for inference.
 
+## Enable or disable vision in the dashboard
+
+Open a robot tab and press `C`, or select its **Vision off · C** button. The control is per camera: 3TSahur's C270, LARP Scout A, and LARP Scout B each keep their own state. When enabled, the dashboard overlays current `person` boxes and confidence scores; press `C` again to immediately stop future inference for that selected feed.
+
+Vision is deliberately disabled after a dashboard restart. A missing model, missing `ultralytics`/`ncnn` package, unavailable camera, or unreachable LARP stream reports as **Vision unavailable** in the video pane. Those conditions do not disable driving, emergency stop, the motor watchdog, camera streaming, or CSI status.
+
 ## Verify the Logitech C270 and create a visual preview
 
 This one-frame check writes a labelled image to `/tmp` without touching the dashboard service or motor controls:
@@ -110,7 +116,7 @@ Use these initial settings for the Pi 4:
 | Inference rate | 2–5 FPS | Video can remain smooth while the Pi has time for controls. |
 | Vision sources | One active tab/feed | Avoids competing inference, video, and Wi-Fi workloads. |
 
-When vision is integrated into the dashboard, it must run in a separate worker, process only the newest available frame, and drop stale frames. It must never wait in a motor-command request path. The dashboard's current one-active-camera policy should remain in place.
+The included implementation runs inference in a separate worker and never waits in a motor-command request path. If you enable more than one feed, the worker samples them in turn; for the best Pi 4 responsiveness, leave vision enabled on only the tab you are watching.
 
 ## Benchmark before enabling it during driving
 
