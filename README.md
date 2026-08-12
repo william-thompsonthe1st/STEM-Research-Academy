@@ -307,8 +307,10 @@ YOLO remains optional: do not install it until the base dashboard, cameras,
 and controls have passed their physical checks. It is never required for motor
 control or LARP operation.
 
-1. Flash a current Raspberry Pi OS image and complete its first-boot setup. Use the normal Pi user; do **not** run the installer as root.
-2. Connect the C270, motor-driver logic ground, and the GPIO leads above. Keep ements and install
+### Manual vision install
+
+Use this alternative only if you prefer to inspect each command rather than using
+the one-command installer above.
 
 - Current 64-bit Raspberry Pi OS; complete the base installation first.
 - Stable power, at least 3 GB free storage, and temporary internet for the
@@ -373,7 +375,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **51 tests successfully**: dashboard/UI,
+The recorded desktop simulation ran **57 tests successfully**: dashboard/UI,
 mecanum mixing, camera discovery/profile isolation, firmware invariants,
 scout registry, Flask control APIs, mission events, snapshots, and optional
 vision failure handling. Hardware validation is still required for motor
