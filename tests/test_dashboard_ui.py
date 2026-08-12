@@ -70,6 +70,17 @@ class DashboardTabTests(unittest.TestCase):
         self.assertIn("event.key === 'ArrowRight'", SCRIPT)
         self.assertIn("event.key === 'Home'", SCRIPT)
 
+    def test_3tsahur_gimbal_and_ramp_controls_are_isolated_from_drive(self):
+        self.assertIn('id="gimbal-mode"', TEMPLATE)
+        self.assertIn('id="ramp-toggle"', TEMPLATE)
+        self.assertIn('data-gimbal="pan-left"', TEMPLATE)
+        self.assertIn("key === 'g'", SCRIPT)
+        self.assertIn("key === 'r'", SCRIPT)
+        self.assertIn("/api/actuators/gimbal", SCRIPT)
+        self.assertIn("/api/actuators/ramp", SCRIPT)
+        self.assertIn("Planning only · no servo output", SCRIPT)
+        self.assertIn(".actuator-card", STYLES)
+
     def test_video_and_controls_use_separate_grid_columns(self):
         self.assertIn('grid-template-columns: minmax(0, 1.55fr) minmax(340px, .9fr);', STYLES)
         self.assertNotIn('.drive-card { position: absolute', STYLES)
