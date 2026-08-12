@@ -464,10 +464,12 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **58 tests successfully**: dashboard/UI,
+The recorded desktop simulation ran **60 tests successfully**: dashboard/UI,
 mecanum mixing, camera discovery/profile isolation, firmware invariants,
 scout registry, Flask control APIs, mission events, snapshots, and optional
-vision failure handling. Hardware validation is still required for motor
+vision failure handling. Repeated held-command heartbeats are also verified to
+refresh the watchdog without rewriting unchanged Pi or LARP motor outputs.
+Hardware validation is still required for motor
 polarity/current, Wi-Fi range, camera focus, CSI calibration, gamepad mapping,
 and physical emergency-stop behavior. Read
 [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact

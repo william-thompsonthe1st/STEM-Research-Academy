@@ -3,15 +3,15 @@
 Date: 2026-08-12
 
 The integration base and the 3TSahur/LARP updates were compiled with Python.
-All 58 hardware-independent tests passed in an isolated desktop virtual
+All 60 hardware-independent tests passed in an isolated desktop virtual
 environment with the repository's Flask dependency installed.
 
 | Group | Checks | Result |
 | --- | ---: | --- |
 | `test_dashboard_ui.py` | per-robot tabs, lazy MJPEG streams, CSI, vision controls, mission tools, profiles, health panel, non-overlap layout, and static lightweight UI-refresh guard | pass |
-| `test_motor.py` | mecanum mixing, normalization, reversal dead-time, and confirmed GPIO/PWM mapping | pass |
+| `test_motor.py` | mecanum mixing, normalization, reversal dead-time, confirmed GPIO/PWM mapping, and redundant-heartbeat write suppression | pass |
 | `test_camera.py` | C270 V4L2 discovery ordering | pass |
-| `test_firmware.py` | LARP reconnect behavior, CSI status fields, capped camera stream rate, firmware settings, and installer invariants | pass |
+| `test_firmware.py` | LARP reconnect behavior, CSI status fields, capped camera stream rate, unchanged-output suppression, firmware settings, and installer invariants | pass |
 | `test_scouts.py` | heartbeat registry handling | pass |
 | `test_server.py` | hub API, expiry/sequence safety, profile/control isolation, timeline, snapshot failure handling, dashboard, and scout proxy behavior | pass |
 | `test_swarm_compatibility.py` | simultaneous 3TSahur, LARP A, and LARP B route compatibility plus local control-path queue check | pass |
@@ -19,6 +19,12 @@ environment with the repository's Flask dependency installed.
 The test harness uses fake GPIO/PWM implementations and mocked network/camera
 interfaces. It verifies the partner-base forward pins `5, 16, 20, 13` and
 reverse pins `6, 19, 21, 26` for the four mecanum wheels.
+
+The latency pass confirms that an unchanged held command performs zero
+additional Pi PWM starts or duty-cycle changes. The LARP firmware similarly
+refreshes `lastCommandAt` without repeating `drivetrain.drive`, and its 2 ms
+disconnected loop sends a stop only on a state transition. Boot still forces a
+physical zero command, and both watchdogs retain their existing timeouts.
 
 ## Control-path timing simulation
 
@@ -55,11 +61,10 @@ compatibility test also asserts a 50 ms local ceiling across repeated Pi/LARP
 requests, so a new local request queue cannot silently reintroduce multi-second
 delays.
 
-The UI refresh changes only HTML/CSS presentation and one regression test. It
-does not alter the dashboard JavaScript, HTTP endpoints, control timer rates,
-camera-stream behavior, motor mixer, watchdog, firmware, or network settings.
-It adds no dependencies or background tasks and removes the previous CSS camera
-filter and `backdrop-filter` panel effect.
+The current latency change does not alter dashboard JavaScript, HTTP endpoints,
+control timer rates, camera-stream behavior, motor mixing, watchdog timeouts,
+or network settings. It removes only redundant writes when the requested motor
+output is already applied.
 
 This confirms software compatibility and the absence of a local API backlog;
 it does **not** measure the Pi's hotspot airtime, 2.4 GHz interference, ESP32

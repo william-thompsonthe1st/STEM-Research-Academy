@@ -9,8 +9,8 @@ update, snapshot, camera profile change, or vision result.
 | Layer | Tuning | Purpose |
 | --- | --- | --- |
 | Browser control channel | Latest command only; stale in-flight requests abort after 140 ms | Prevents an old input from building a request backlog. |
-| 3TSahur mecanum | 80 ms keyboard heartbeat and 200 ms watchdog | Keeps current movement responsive and stops it quickly when refreshes stop. |
-| LARP drive channel | 80 ms keyboard heartbeat and 500 ms ECHO watchdog | Refreshes held movement while retaining a finite stop timeout. |
+| 3TSahur mecanum | 80 ms keyboard heartbeat, unchanged-PWM suppression, and 200 ms watchdog | Refreshes safety timing without rewriting four identical PWM outputs. |
+| LARP drive channel | 80 ms keyboard heartbeat, unchanged-output suppression, and 500 ms ECHO watchdog | Refreshes safety timing without repeating motor-controller writes. |
 | LARP HTTP proxy | 120 ms outbound timeout by default | Fails an unreachable scout quickly instead of tying up the current control request. |
 | Scout status/CSI | No poll while its drive key is held; inactive polling every 5 s | Makes CSI/UI best-effort rather than competing with drive packets. |
 | LARP Wi-Fi recovery | Staggered 1.8/2.2 s controller retry and 2.0/2.4 s camera retry | Reduces worst-case reconnect delay and avoids synchronized retry bursts. |

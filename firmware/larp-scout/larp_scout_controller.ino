@@ -67,6 +67,8 @@ unsigned long lastWiFiAttemptAt = 0;
 unsigned long lastHeartbeatAt = 0;
 unsigned long lastCsiReportAt = 0;
 bool motorsStopped = true;
+int appliedDriveX = 0;
+int appliedDriveY = 0;
 bool mdnsStarted = false;
 bool wifiWasConnected = false;
 bool serverStarted = false;
@@ -265,8 +267,12 @@ void piRegistrationTask(void *) {
 // Motor safety and HTTP API
 // ---------------------------------------------------------------------------
 
-void stopMotors() {
-  drivetrain.drive(0, 0);
+void stopMotors(bool force = false) {
+  if (force || !motorsStopped || appliedDriveX != 0 || appliedDriveY != 0) {
+    drivetrain.drive(0, 0);
+  }
+  appliedDriveX = 0;
+  appliedDriveY = 0;
   motorsStopped = true;
 }
 
@@ -283,7 +289,14 @@ void handleDrive() {
 
   x = (x * speed) / 100;
   y = (y * speed) / 100;
-  drivetrain.drive(x, y);
+  // Held controls refresh the watchdog frequently. Only send a new motor
+  // command when its actual output changes, leaving the loop responsive to
+  // HTTP, Wi-Fi maintenance, CSI processing, and the watchdog itself.
+  if (x != appliedDriveX || y != appliedDriveY) {
+    drivetrain.drive(x, y);
+    appliedDriveX = x;
+    appliedDriveY = y;
+  }
   motorsStopped = x == 0 && y == 0;
   lastCommandAt = millis();
   sendJson("{\"ok\":true}");
@@ -405,7 +418,7 @@ void setup() {
   delay(300);
 
   drivetrain.setBrake();
-  stopMotors();
+  stopMotors(true);
 
   beginWiFi();
   csiUdp.begin(0);

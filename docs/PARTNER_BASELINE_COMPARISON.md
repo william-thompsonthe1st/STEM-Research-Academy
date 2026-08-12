@@ -51,6 +51,7 @@ proven motor path:
 | LARP CSI/status polling | Both scouts every 2 s | Skip a driven scout; inactive polls every 5 s, active-tab poll every 1.2 s | Auxiliary telemetry yields to motor control. |
 | Wi-Fi reconnect cadence | Both controller/camera images retry every 5 s | Staggered controller 1.8/2.2 s; camera 2.0/2.4 s | Faster recovery with reduced synchronized retry bursts. |
 | Video airtime | Existing shared hotspot | One active dashboard stream and 10 FPS ESP32-CAM cap | Preserves capacity for short control packets. |
+| Repeated held commands | Every heartbeat reapplies the same motor output | Identical Pi PWM and LARP drivetrain writes are skipped while watchdog timestamps still refresh | Reduces control-loop work without changing output, command cadence, or safety timeouts. |
 
 The motor pins, mixer, PWM frequency, ECHO motor IDs, command endpoints,
 watchdogs, and controller `WiFi.setSleep(false)` behavior are intentionally not
@@ -58,7 +59,7 @@ changed by this tuning.
 
 ## Compatibility and performance evidence
 
-The isolated desktop suite currently passes **57 tests**, including the
+The isolated desktop suite currently passes **60 tests**, including the
 three-robot compatibility test. It registers both LARPs with distinct simulated
 hotspot addresses, sends a current 3TSahur command plus a command to each LARP,
 and verifies both LARP status routes and the hub motor state.

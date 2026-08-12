@@ -34,6 +34,12 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn("drivetrain.setBrake()", self.source)
         self.assertIn("drivetrain.drive(0, 0)", self.source)
 
+    def test_repeated_heartbeats_do_not_rewrite_unchanged_motor_outputs(self):
+        self.assertIn("if (x != appliedDriveX || y != appliedDriveY)", self.source)
+        self.assertIn("if (force || !motorsStopped", self.source)
+        self.assertIn("stopMotors(true);", self.source)
+        self.assertIn("lastCommandAt = millis();", self.source)
+
     def test_pi_integration_endpoints_and_station_mode_are_present(self):
         self.assertIn("WiFi.mode(WIFI_STA)", self.source)
         self.assertIn("PI_HEARTBEAT_UDP_PORT = 5006", self.source)

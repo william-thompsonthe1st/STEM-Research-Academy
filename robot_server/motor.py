@@ -117,6 +117,17 @@ class MecanumDrive:
                 for value in (forward, strafe, rotate)
             )
             speed = max(0.0, min(1.0, float(speed)))
+            command = {
+                "forward": forward,
+                "strafe": strafe,
+                "rotate": rotate,
+                "speed": speed,
+            }
+            # Held controls refresh the server watchdog every 80 ms. Preserve
+            # that route-level heartbeat without rewriting four unchanged PWM
+            # channels on every request.
+            if command == self.last_command:
+                return
             mixed = self.mix(forward, strafe, rotate)
             outputs = {name: value * speed for name, value in mixed.items()}
             if any(
@@ -133,12 +144,7 @@ class MecanumDrive:
             for name, value in outputs.items():
                 if name in self._motors:
                     self._motors[name].set(value)
-            self.last_command = {
-                "forward": forward,
-                "strafe": strafe,
-                "rotate": rotate,
-                "speed": speed,
-            }
+            self.last_command = command
 
     def stop(self) -> None:
         self.drive(0, 0, 0, self.last_command["speed"])

@@ -8,13 +8,17 @@ class FakePWM:
     def __init__(self):
         self.duty = None
         self.running = False
+        self.change_count = 0
+        self.start_count = 0
 
     def start(self, duty):
         self.duty = duty
         self.running = True
+        self.start_count += 1
 
     def ChangeDutyCycle(self, duty):
         self.duty = duty
+        self.change_count += 1
 
     def stop(self):
         self.running = False
@@ -85,6 +89,20 @@ class MecanumMixTests(unittest.TestCase):
             drive.drive(-1, 0, 0, 0.75)
         sleep.assert_called_once_with(0.015)
         self.assertEqual(sum(pwm.running for pwm in gpio.pwms.values()), 4)
+        drive.close()
+
+    def test_identical_watchdog_heartbeat_skips_redundant_pwm_writes(self):
+        gpio = FakeGPIO()
+        drive = MecanumDrive(gpio_module=gpio)
+        drive.drive(1, 0, 0, 0.75)
+        starts = sum(pwm.start_count for pwm in gpio.pwms.values())
+        changes = sum(pwm.change_count for pwm in gpio.pwms.values())
+
+        drive.drive(1, 0, 0, 0.75)
+
+        self.assertEqual(sum(pwm.start_count for pwm in gpio.pwms.values()), starts)
+        self.assertEqual(sum(pwm.change_count for pwm in gpio.pwms.values()), changes)
+        self.assertEqual(drive.last_command["forward"], 1)
         drive.close()
 
 
