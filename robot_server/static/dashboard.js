@@ -107,6 +107,7 @@
   }
 
   function sendBig(force = false, override = null, urgent = false) {
+    if (document.querySelector('#deadman')?.checked && !override && document.body.dataset.deadman !== 'held') return;
     const command = override || bigVector();
     const signature = JSON.stringify(command);
     const moving = command.forward || command.strafe || command.rotate;
@@ -148,6 +149,7 @@
   }
 
   function sendScout(id, motion, urgent = false) {
+    if (document.querySelector('#deadman')?.checked && motion !== 'stop' && document.body.dataset.deadman !== 'held') return;
     const controls = document.querySelector(`[data-scout="${id}"]`);
     const vector = scoutMotion[motion] || scoutMotion.stop;
     const speedLimit = Number(controls.querySelector('input').value);
@@ -465,6 +467,7 @@
         ? `${data.motion ? 'CSI disturbance' : 'CSI idle'} / ${Math.round(data.motion_level || 0)}%`
         : connected ? 'Heartbeat received' : 'Scout not connected';
       renderCsiSensor(id, data, Boolean(data.online));
+      sampleCalibration(id, Math.max(0, Math.min(100, Number(data.motion_level) || 0)));
     } catch (_) {
       panel.classList.remove('scout-connected');
       statusElement.classList.add('offline');
@@ -490,8 +493,23 @@
     if (id) refreshScout(id);
   }, 750);
   window.setInterval(() => refreshVision(activeRobotTab), 500);
+  const deadman = document.querySelector('#deadman');
+  const calibration = {a: null, b: null};
+  function reportEvent(kind, source, message) { fetch('/api/events', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, source, message}), cache: 'no-store'}).catch(() => {}); }
+  async function refreshEvents() { try { const data = await (await fetch('/api/events', {cache: 'no-store'})).json(); document.querySelector('#event-list').innerHTML = (data.events || []).slice(0, 8).map(e => `<li><time>${new Date(e.at_ms).toLocaleTimeString()}</time> ${e.message}</li>`).join('') || '<li>No mission events yet.</li>'; } catch (_) {} }
+  async function takeSnapshot(source) { try { const response = await fetch(`/api/snapshots/${source}`, {method: 'POST', cache: 'no-store'}); const data = await response.json(); if (!response.ok) throw Error(data.error); reportEvent('snapshot', source, `Operator snapshot: ${source}`); window.open(data.url, '_blank', 'noopener'); showToast('Snapshot saved'); refreshEvents(); } catch (error) { showToast(error.message || 'Snapshot unavailable'); } }
+  function startCalibration(id) { calibration[id] = {until: Date.now() + 20000, values: []}; document.querySelector(`#scout-${id}-calibration`).value = 'Calibrating… keep area clear'; reportEvent('calibration', `larp-${id}`, 'CSI calibration started'); }
+  function sampleCalibration(id, level) { const item = calibration[id]; if (!item) return; item.values.push(level); if (Date.now() < item.until) return; const baseline = item.values.reduce((a, b) => a + b, 0) / Math.max(1, item.values.length); document.querySelector(`#scout-${id}-calibration`).value = `Baseline ${Math.round(baseline)}% · suggested alert ${Math.min(100, Math.round(baseline + 15))}%`; calibration[id] = null; refreshEvents(); }
+  document.querySelectorAll('[data-snapshot]').forEach(button => button.addEventListener('click', () => takeSnapshot(button.dataset.snapshot)));
+  document.querySelectorAll('[data-calibrate]').forEach(button => button.addEventListener('click', () => startCalibration(button.dataset.calibrate)));
+  deadman.addEventListener('change', () => { killAll(); reportEvent('safety', 'dashboard', `Dead-man mode ${deadman.checked ? 'enabled' : 'disabled'}`); });
+  window.addEventListener('keydown', event => { if (deadman.checked && event.key === 'Shift') document.body.dataset.deadman = 'held'; });
+  window.addEventListener('keyup', event => { if (deadman.checked && event.key === 'Shift') { delete document.body.dataset.deadman; killAll(); } });
+  window.setInterval(refreshEvents, 2000);
+  window.setInterval(() => { const pad = navigator.getGamepads?.()[0]; if (!pad || activeRobotTab !== '3tsahur') return; const held = Boolean(pad.buttons[0]?.pressed); if (deadman.checked) { if (held) document.body.dataset.deadman = 'held'; else { delete document.body.dataset.deadman; killBig(); return; } } const forward = Math.abs(pad.axes[1] || 0) > .18 ? -(pad.axes[1] || 0) : 0; const strafe = Math.abs(pad.axes[0] || 0) > .18 ? pad.axes[0] : 0; const rotate = Math.abs(pad.axes[2] || 0) > .18 ? pad.axes[2] : 0; if (forward || strafe || rotate) sendBig(true, {forward, strafe, rotate, speed: Number(speed.value) / 100}); }, 100);
   activateOnlySelectedCamera(activeRobotTab);
   refreshStatus();
   refreshScout('a');
   refreshScout('b');
+  refreshEvents();
 })();
