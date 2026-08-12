@@ -1,0 +1,13 @@
+[Unit]
+Description=3TSahur Wi-Fi hotspot
+Wants=NetworkManager.service
+After=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/stem-robot-hotspot start
+ExecStop=/usr/local/sbin/stem-robot-hotspot stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

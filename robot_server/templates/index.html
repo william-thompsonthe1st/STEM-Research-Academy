@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="server-time-ms" content="{{ server_time_ms }}">
+  <title>3TSahur Swarm Control</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=3) }}">
+</head>
+<body>
+  <main class="dashboard">
+    <section class="panel primary-panel">
+      <img class="video" src="{{ url_for('camera_feed') }}" alt="Mecanum robot camera feed">
+      <div class="camera-message" id="camera-message">Starting Logitech C270 camera...</div>
+      <div class="shade"></div>
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Robot 01 · Mecanum</p>
+          <h1>3TSahur control</h1>
+        </div>
+        <span class="status" id="pi-status"><i></i> Connecting</span>
+      </header>
+
+      <div class="drive-card">
+        <div class="speed-row">
+          <label for="speed">Drive speed</label>
+          <output id="speed-value">75%</output>
+        </div>
+        <input id="speed" type="range" min="20" max="100" value="75" step="5">
+        <div class="key-grid" aria-label="Keyboard controls">
+          <span class="key small" data-key="q">Q<small>turn</small></span>
+          <span class="key" data-key="w">W<small>forward</small></span>
+          <span class="key small" data-key="e">E<small>turn</small></span>
+          <span class="key" data-key="a">A<small>left</small></span>
+          <span class="key" data-key="s">S<small>back</small></span>
+          <span class="key" data-key="d">D<small>right</small></span>
+        </div>
+        <p class="hint">WASD drive · Q/E rotate · Space kills only this robot</p>
+        <button class="stop-button" id="stop" type="button">Kill 3TSahur · all 4 motors</button>
+      </div>
+
+      <footer class="telemetry">
+        <span id="direction">Standing by</span>
+        <span id="host">10.42.0.1:8080</span>
+      </footer>
+    </section>
+
+    <aside class="secondary-stack">
+      <section class="panel esp-panel" data-scout-panel="a">
+        <div class="grid-backdrop"></div>
+        <img class="scout-video" src="{{ larp_a_stream }}" alt="LARP Scout A camera feed">
+        <header class="panel-header compact">
+          <div>
+            <p class="eyebrow">Robot 02 · Differential</p>
+            <h2>LARP Scout A</h2>
+          </div>
+          <span class="status waiting" id="scout-a-status"><i></i> Waiting</span>
+        </header>
+        <div class="scout-connection">
+          <span class="connection-icon">A</span>
+          <strong id="scout-a-connection">Waiting for LARP heartbeat</strong>
+          <small>Arrow keys</small>
+        </div>
+        <div class="scout-controls" data-scout="a">
+          <label>Speed <output>35%</output><input type="range" min="10" max="70" value="35"></label>
+          <div class="scout-pad" aria-label="LARP Scout A controls">
+            <button data-motion="left" aria-label="Scout A left">←</button>
+            <button data-motion="forward" aria-label="Scout A forward">↑</button>
+            <button class="scout-stop" data-motion="stop" aria-label="Kill Scout A">KILL A</button>
+            <button data-motion="back" aria-label="Scout A backward">↓</button>
+            <button data-motion="right" aria-label="Scout A right">→</button>
+          </div>
+        </div>
+        <footer class="telemetry"><span id="scout-a-motion">CSI idle</span><span>larp-a.local</span></footer>
+      </section>
+
+      <section class="panel esp-panel accent-two" data-scout-panel="b">
+        <div class="grid-backdrop"></div>
+        <img class="scout-video" src="{{ larp_b_stream }}" alt="LARP Scout B camera feed">
+        <header class="panel-header compact">
+          <div>
+            <p class="eyebrow">Robot 03 · Differential</p>
+            <h2>LARP Scout B</h2>
+          </div>
+          <span class="status waiting" id="scout-b-status"><i></i> Waiting</span>
+        </header>
+        <div class="scout-connection">
+          <span class="connection-icon">B</span>
+          <strong id="scout-b-connection">Waiting for LARP heartbeat</strong>
+          <small>I / J / K / L keys</small>
+        </div>
+        <div class="scout-controls" data-scout="b">
+          <label>Speed <output>35%</output><input type="range" min="10" max="70" value="35"></label>
+          <div class="scout-pad" aria-label="LARP Scout B controls">
+            <button data-motion="left" aria-label="Scout B left">←</button>
+            <button data-motion="forward" aria-label="Scout B forward">↑</button>
+            <button class="scout-stop" data-motion="stop" aria-label="Kill Scout B">KILL B</button>
+            <button data-motion="back" aria-label="Scout B backward">↓</button>
+            <button data-motion="right" aria-label="Scout B right">→</button>
+          </div>
+        </div>
+        <footer class="telemetry"><span id="scout-b-motion">CSI idle</span><span>larp-b.local</span></footer>
+      </section>
+    </aside>
+  </main>
+  <button class="kill-all" id="kill-all" type="button">Kill all robots · Esc</button>
+  <div class="toast" id="toast" role="status">Controls disconnected — motors stopped</div>
+  <script src="{{ url_for('static', filename='dashboard.js', v=3) }}"></script>
+</body>
+</html>

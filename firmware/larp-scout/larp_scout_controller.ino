@@ -1,7 +1,7 @@
 /*
-  ECHO Robot Controller
+  LARP Scout Controller
   =====================
-  Shared firmware for both identical ECHO-board differential-drive scouts.
+  Shared firmware for both identical LARP differential-drive scouts.
 
   Before flashing, change ROBOT_ID to 'A' or 'B'. Everything else stays the
   same. The robot joins the Raspberry Pi hotspot in station mode, serves a
@@ -30,7 +30,7 @@
 
 constexpr char ROBOT_ID = 'A';  // Flash one board as 'A' and the other as 'B'.
 
-constexpr char WIFI_SSID[] = "EchoSwarm";
+constexpr char WIFI_SSID[] = "3TSahur-Swarm";
 constexpr char WIFI_PASSWORD[] = "roboswarm1";
 
 constexpr uint8_t LEFT_MOTOR_ID = 1;
@@ -49,9 +49,9 @@ const IPAddress PI_ADDRESS(10, 42, 0, 1);
 
 static_assert(ROBOT_ID == 'A' || ROBOT_ID == 'B', "ROBOT_ID must be A or B");
 
-const char *robotName() { return ROBOT_ID == 'A' ? "ECHO Scout A" : "ECHO Scout B"; }
-const char *robotHost() { return ROBOT_ID == 'A' ? "echo-scout-a" : "echo-scout-b"; }
-const char *cameraHost() { return ROBOT_ID == 'A' ? "echo-scout-a-cam.local" : "echo-scout-b-cam.local"; }
+const char *robotName() { return ROBOT_ID == 'A' ? "LARP Scout A" : "LARP Scout B"; }
+const char *robotHost() { return ROBOT_ID == 'A' ? "larp-a" : "larp-b"; }
+const char *cameraHost() { return ROBOT_ID == 'A' ? "larp-a-cam.local" : "larp-b-cam.local"; }
 
 // EchoLib's documented differential-drive class accepts turn (X) and
 // forward/reverse (Y) values. Motors 1 and 6 match the Zippy example.
@@ -309,10 +309,10 @@ void handleStatus() {
 const char CONTROL_PAGE[] PROGMEM = R"HTML(
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>ECHO Scout</title><style>
+<title>LARP Scout</title><style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#08100f;color:#f2f7f5;font-family:system-ui,sans-serif}
 main{width:min(440px,94vw);padding:24px;border:1px solid #29403b;border-radius:18px;background:#101a18}h1{margin:0 0 4px}.muted{color:#8da39d}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:24px 0}.grid button{min-height:70px;border:1px solid #3e5b54;border-radius:12px;background:#172622;color:white;font-size:20px;font-weight:800;touch-action:none}.grid button:active,.stop{background:#b9ff38!important;color:#08100f!important}.blank{visibility:hidden}.stop{border-color:#b9ff38!important}.bar{height:8px;border-radius:8px;background:#23332f;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#45e5ff}.row{display:flex;justify-content:space-between;margin:12px 0}
-</style></head><body><main><p class="muted">EchoSwarm differential drive</p><h1 id="name">ECHO Scout</h1>
+</style></head><body><main><p class="muted">3TSahur swarm differential drive</p><h1 id="name">LARP Scout</h1>
 <div class="row"><span id="link">connecting</span><span id="motion">CSI idle</span></div><div class="bar"><i id="level"></i></div>
 <div class="grid"><i class="blank"></i><button data-x="0" data-y="100">▲</button><i class="blank"></i><button data-x="-100" data-y="0">◀</button><button class="stop" id="stop">■</button><button data-x="100" data-y="0">▶</button><i class="blank"></i><button data-x="0" data-y="-100">▼</button><i class="blank"></i></div>
 <label>Speed <output id="speedOut">35%</output></label><input id="speed" type="range" min="10" max="70" value="35" style="width:100%">

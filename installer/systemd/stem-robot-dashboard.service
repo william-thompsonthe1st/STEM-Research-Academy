@@ -1,0 +1,17 @@
+[Unit]
+Description=3TSahur mecanum hub and LARP scout dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=@APP_USER@
+WorkingDirectory=@APP_DIR@
+EnvironmentFile=-/etc/stem-research-academy/config.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@APP_DIR@/.venv/bin/python -m robot_server.app
+Restart=always
+RestartSec=2
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target
