@@ -77,6 +77,8 @@ vision = VisionManager({
 events: deque[dict] = deque(maxlen=120)
 event_lock = threading.Lock()
 snapshot_dir = Path(os.environ.get("SNAPSHOT_DIR", "/tmp/3tsahur-snapshots"))
+CAMERA_PROFILES = {"control": (320, 240, 6), "balanced": (640, 480, 10), "detail": (1280, 720, 12)}
+camera_profile = "balanced"
 
 
 def record_event(kind: str, source: str, message: str) -> dict:
@@ -144,10 +146,29 @@ def create_app() -> Flask:
             camera_available=camera.available,
             camera_error=camera.error,
             camera_device=camera.selected_device,
+            camera_profile=camera_profile,
+            camera_width=camera.width,
+            camera_height=camera.height,
+            camera_fps=camera.fps,
+            uptime_seconds=round(time.monotonic(), 1),
             command=drive.last_command,
             vision={source: vision.snapshot(source) for source in ("3tsahur", "larp-a", "larp-b")},
             server_time_ms=round(time.time() * 1000),
         )
+
+    @app.post("/api/camera/profile")
+    def set_camera_profile():
+        global camera_profile
+        profile = str((request.get_json(silent=True) or {}).get("profile", ""))
+        if profile not in CAMERA_PROFILES:
+            return jsonify(error="Unknown camera profile"), 400
+        width, height, fps = CAMERA_PROFILES[profile]
+        try:
+            camera.configure(width, height, fps)
+            camera_profile = profile
+            return jsonify(ok=True, profile=profile, width=width, height=height, fps=fps)
+        except ValueError as error:
+            return jsonify(error=str(error)), 400
 
     @app.route("/api/vision/<source>", methods=["GET", "POST"])
     def vision_status(source: str):
