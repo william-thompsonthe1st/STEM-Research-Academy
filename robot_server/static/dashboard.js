@@ -413,6 +413,8 @@
         serverClockOffset = data.server_time_ms - ((requestStartedAt + responseReceivedAt) / 2);
       }
       const hardwareReady = data.gpio === 'hardware';
+      cameraProfile.value = data.camera_profile || 'balanced';
+      document.querySelector('#health-panel').innerHTML = `<dt>Pi control</dt><dd>${hardwareReady ? 'ready' : 'simulation'}</dd><dt>Camera</dt><dd>${data.camera_available ? `${data.camera_width}x${data.camera_height} @ ${data.camera_fps}` : 'unavailable'}</dd><dt>Network</dt><dd>${location.host}</dd>`;
       status.classList.toggle('offline', !hardwareReady);
       status.innerHTML = `<i></i> ${hardwareReady ? 'Pi controls ready' : 'GPIO unavailable - motors disabled'}`;
       host.textContent = `${data.hostname} / ${location.host}`;
@@ -494,6 +496,7 @@
   }, 750);
   window.setInterval(() => refreshVision(activeRobotTab), 500);
   const deadman = document.querySelector('#deadman');
+  const cameraProfile = document.querySelector('#camera-profile');
   const calibration = {a: null, b: null};
   function reportEvent(kind, source, message) { fetch('/api/events', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({kind, source, message}), cache: 'no-store'}).catch(() => {}); }
   async function refreshEvents() { try { const data = await (await fetch('/api/events', {cache: 'no-store'})).json(); document.querySelector('#event-list').innerHTML = (data.events || []).slice(0, 8).map(e => `<li><time>${new Date(e.at_ms).toLocaleTimeString()}</time> ${e.message}</li>`).join('') || '<li>No mission events yet.</li>'; } catch (_) {} }
@@ -503,6 +506,7 @@
   document.querySelectorAll('[data-snapshot]').forEach(button => button.addEventListener('click', () => takeSnapshot(button.dataset.snapshot)));
   document.querySelectorAll('[data-calibrate]').forEach(button => button.addEventListener('click', () => startCalibration(button.dataset.calibrate)));
   deadman.addEventListener('change', () => { killAll(); reportEvent('safety', 'dashboard', `Dead-man mode ${deadman.checked ? 'enabled' : 'disabled'}`); });
+  cameraProfile.addEventListener('change', async () => { const profile = cameraProfile.value; killBig(); try { const response = await fetch('/api/camera/profile', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({profile}), cache: 'no-store'}); const data = await response.json(); if (!response.ok) throw Error(data.error); reportEvent('camera-profile', '3tsahur', `Camera profile: ${profile}`); showToast(`Camera set to ${data.width}x${data.height} @ ${data.fps} FPS`); } catch (error) { showToast(error.message || 'Camera profile unavailable'); } });
   window.addEventListener('keydown', event => { if (deadman.checked && event.key === 'Shift') document.body.dataset.deadman = 'held'; });
   window.addEventListener('keyup', event => { if (deadman.checked && event.key === 'Shift') { delete document.body.dataset.deadman; killAll(); } });
   window.setInterval(refreshEvents, 2000);
