@@ -3,7 +3,7 @@
 Date: 2026-08-12
 
 The integration base and the 3TSahur/LARP updates were compiled with Python.
-All 56 hardware-independent tests passed in an isolated desktop virtual
+All 57 hardware-independent tests passed in an isolated desktop virtual
 environment with the repository's Flask dependency installed.
 
 | Group | Checks | Result |
@@ -48,9 +48,9 @@ successfully and the 3TSahur motor state remained current. This exercises the
 same dashboard API routes that the three tabs use, with scout HTTP calls mocked
 to remove physical radio variation.
 
-In 100 repeated composite cycles, each containing all three of those commands,
-the local Flask/test-client control path averaged **0.473 ms** per cycle, with
-a **0.770 ms** 95th percentile and **1.179 ms** maximum. The compatibility
+After the control-priority update, 100 repeated composite cycles, each
+containing all three of those commands, averaged **0.466 ms** per cycle, with
+a **0.697 ms** 95th percentile and **1.042 ms** maximum. The compatibility
 test also asserts a 50 ms local ceiling across repeated Pi/LARP requests, so a
 new local request queue cannot silently reintroduce multi-second delays.
 
