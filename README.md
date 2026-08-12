@@ -76,6 +76,29 @@ Commands are deliberately short-lived. Releasing a key, losing the client connec
 
 ## Hardware and wiring
 
+### Rebuild checklist
+
+**Required parts**
+
+- [ ] Raspberry Pi 4 Model B (4 GB), microSD card, official-grade 5 V / 3 A supply, case/cooling, and a local display or operator phone/tablet.
+- [ ] Logitech C270 USB webcam and four mecanum DC motors with compatible wheels/chassis.
+- [ ] Two dual-channel H-bridge drivers, correctly rated fused motor battery/supply, wiring, common ground, and an accessible physical motor-power switch.
+- [ ] Two ECHO robots, two Inland ESP32-CAM boards, matching camera modules, two stable 5 V camera supplies, and USB-to-serial adapter(s) for flashing.
+- [ ] A 2.4 GHz Wi-Fi-capable operator device. A browser gamepad is optional; no Pi-side gamepad hardware is required.
+
+**Raspberry Pi software checklist**
+
+- [ ] Current 64-bit Raspberry Pi OS with internet available for initial installation.
+- [ ] Run `bash installer/install.sh` as the normal Pi user. It installs Python, Flask, OpenCV, V4L2 tools, NetworkManager, Avahi, and required GPIO support.
+- [ ] Flash and configure the two LARP controller sketches and two ESP32-CAM sketches with the same hotspot credentials.
+- [ ] Optional YOLO: follow [docs/VISION_SETUP.md](docs/VISION_SETUP.md) to install `ultralytics` and `ncnn` inside `.vision-venv` and export `yolo11n_ncnn_model`.
+
+**Arduino IDE checklist**
+
+- [ ] Install Arduino IDE and the **esp32 by Espressif Systems** board package for the Inland ESP32-CAM; select the AI Thinker-compatible profile described in [docs/ESP32_CAM_SETUP.md](docs/ESP32_CAM_SETUP.md).
+- [ ] Install the ECHO/EchoLib dependencies specified in [firmware/larp-scout/README.md](firmware/larp-scout/README.md) before flashing the LARP drive controllers.
+- [ ] Upload with GPIO0 grounded only during ESP32-CAM flashing, then remove the jumper before normal boot.
+
 ### 3TSahur hub
 
 | Part | Role |
@@ -142,6 +165,18 @@ After editing runtime configuration, run:
 sudo systemctl restart stem-robot-dashboard
 sudo systemctl status stem-robot-dashboard
 ```
+
+### Camera profiles and health panel
+
+The 3TSahur tab includes a health panel and camera profile selector. The panel reports control availability, current C270 state/profile, and dashboard network address using the existing 3-second status poll.
+
+| Profile | C270 setting | Use it when |
+| --- | --- | --- |
+| Control Priority | 320×240 at 6 FPS | Driving must have maximum Wi-Fi/CPU headroom. |
+| Balanced | 640×480 at 10 FPS | Normal operation; default. |
+| Detail | 1280×720 at 12 FPS | Stationary inspection on a strong power/Wi-Fi link. |
+
+Changing profile stops 3TSahur before restarting only the camera worker. It does not change GPIO mapping, motor software, or LARP connections. Start with **Control Priority** if you observe command delay.
 
 ## Optional pretrained AI vision
 
