@@ -12,6 +12,10 @@ APP_USER="$(id -un)"
 TEMP_CHECKOUT=""
 STAGED_APP_DIR=""
 APP_SWAPPED=0
+CONFIG_ROLLBACK=""
+CONFIG_WAS_PRESENT=0
+HOSTS_ROLLBACK=""
+ORIGINAL_HOSTNAME="$(hostnamectl --static 2>/dev/null || hostname)"
 AUTOSTART_DIR="$HOME/.config/autostart"
 LABWC_DIR="$HOME/.config/labwc"
 KIOSK_URL="http://127.0.0.1:8080"
@@ -30,6 +34,15 @@ cleanup() {
         sudo systemctl stop stem-robot-dashboard.service 2>/dev/null || true
         rm -rf -- "$APP_DIR"
         mv "$PREVIOUS_APP_DIR" "$APP_DIR"
+        if [ "$CONFIG_WAS_PRESENT" = "1" ] && [ -n "$CONFIG_ROLLBACK" ]; then
+            sudo install -o root -g root -m 0600 "$CONFIG_ROLLBACK" "$CONFIG_FILE"
+        elif [ "$CONFIG_WAS_PRESENT" = "0" ]; then
+            sudo rm -f -- "$CONFIG_FILE"
+        fi
+        if [ -n "$HOSTS_ROLLBACK" ] && [ -f "$HOSTS_ROLLBACK" ]; then
+            sudo install -o root -g root -m 0644 "$HOSTS_ROLLBACK" /etc/hosts
+        fi
+        [ -n "$ORIGINAL_HOSTNAME" ] && sudo hostnamectl set-hostname "$ORIGINAL_HOSTNAME" || true
         sudo systemctl restart stem-robot-dashboard.service 2>/dev/null || true
     fi
     if [ -n "$TEMP_CHECKOUT" ] && [ -d "$TEMP_CHECKOUT" ]; then
@@ -38,6 +51,7 @@ cleanup() {
     if [ -n "$STAGED_APP_DIR" ] && [ -d "$STAGED_APP_DIR" ]; then
         rm -rf -- "$STAGED_APP_DIR"
     fi
+    [ -n "$CONFIG_ROLLBACK" ] && rm -f -- "$CONFIG_ROLLBACK"
 }
 
 trap cleanup EXIT
@@ -280,6 +294,11 @@ APP_SWAPPED=1
 
 say "Migrating persistent robot, hotspot, and kiosk configuration..."
 sudo install -d -m 0755 "$CONFIG_DIR"
+CONFIG_ROLLBACK="$(mktemp)"
+if sudo test -f "$CONFIG_FILE"; then
+    CONFIG_WAS_PRESENT=1
+    sudo cat "$CONFIG_FILE" > "$CONFIG_ROLLBACK"
+fi
 if ! sudo test -f "$CONFIG_FILE"; then
     CONFIG_TEMP="$(mktemp)"
     cat > "$CONFIG_TEMP" <<'EOF'
@@ -318,6 +337,17 @@ ensure_config_key() {
     fi
 }
 
+# Translate partner-era setting names on first upgrade. Keep the old lines as
+# a readable rollback record, but make their values active under LARP names.
+migrate_config_key() {
+    local new_key="$1" old_key="$2" fallback="$3" value
+    if sudo grep -qE "^${new_key}=" "$CONFIG_FILE"; then
+        return
+    fi
+    value="$(sudo sed -n -E "s/^${old_key}=(.*)$/\1/p" "$CONFIG_FILE" | tail -n 1)"
+    printf '%s=%s\n' "$new_key" "${value:-$fallback}" | sudo tee -a "$CONFIG_FILE" >/dev/null
+}
+
 ensure_config_key KIOSK_URL "$KIOSK_URL"
 ensure_config_key HOTSPOT_SSID "3TSahur-Swarm"
 ensure_config_key HOTSPOT_PASSWORD "roboswarm1"
@@ -330,10 +360,10 @@ ensure_config_key CAMERA_WIDTH "640"
 ensure_config_key CAMERA_HEIGHT "480"
 ensure_config_key CAMERA_FPS "10"
 ensure_config_key DRIVE_WATCHDOG_SECONDS "0.20"
-ensure_config_key LARP_A_CAMERA_URL ""
-ensure_config_key LARP_B_CAMERA_URL ""
-ensure_config_key LARP_A_HOST "larp-a.local"
-ensure_config_key LARP_B_HOST "larp-b.local"
+migrate_config_key LARP_A_CAMERA_URL ESP32_ONE_STREAM_URL ""
+migrate_config_key LARP_B_CAMERA_URL ESP32_TWO_STREAM_URL ""
+migrate_config_key LARP_A_HOST SCOUT_A_HOST "larp-a.local"
+migrate_config_key LARP_B_HOST SCOUT_B_HOST "larp-b.local"
 ensure_config_key VISION_MODEL "yolo11n_ncnn_model"
 ensure_config_key VISION_IMAGE_SIZE "320"
 ensure_config_key VISION_CONFIDENCE "0.45"
@@ -350,6 +380,36 @@ sudo sed -i -E \
     -e 's/^DRIVE_WATCHDOG_SECONDS=.*/DRIVE_WATCHDOG_SECONDS=0.20/' \
     "$CONFIG_FILE"
 sudo chmod 0600 "$CONFIG_FILE"
+
+# Keep sudo/local name resolution working after the intentional hostname
+# change. Preserve unrelated aliases and replace only the 127.0.1.1 mapping.
+HOSTS_TEMP="$(mktemp)"
+HOSTS_ROLLBACK="/etc/hosts.before-3tsahur-$(date +%Y%m%d-%H%M%S)"
+python3 - /etc/hosts "$HOSTS_TEMP" <<'PY'
+from pathlib import Path
+import sys
+
+source, destination = map(Path, sys.argv[1:])
+lines = source.read_text(encoding="utf-8").splitlines() if source.exists() else []
+result = []
+replaced = False
+for line in lines:
+    fields = line.split()
+    if fields and fields[0] == "127.0.1.1":
+        if not replaced:
+            result.append("127.0.1.1\t3tsahur")
+            replaced = True
+        continue
+    result.append(line)
+if not any(line.split()[:1] == ["127.0.0.1"] for line in result):
+    result.insert(0, "127.0.0.1\tlocalhost")
+if not replaced:
+    result.append("127.0.1.1\t3tsahur")
+destination.write_text("\n".join(result) + "\n", encoding="utf-8")
+PY
+sudo cp -a -- /etc/hosts "$HOSTS_ROLLBACK"
+sudo install -o root -g root -m 0644 "$HOSTS_TEMP" /etc/hosts
+rm -f "$HOSTS_TEMP"
 sudo hostnamectl set-hostname 3tsahur
 
 say "Installing the hotspot and dashboard services..."

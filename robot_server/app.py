@@ -48,16 +48,23 @@ drive_sequences: dict[str, int] = {}
 scout_sequences: dict[tuple[str, str], int] = {}
 scout_command_locks = {"a": threading.Lock(), "b": threading.Lock()}
 scout_registry = ScoutRegistry()
+
+
+def _env_first(*names: str, default: str = "") -> str:
+    """Return the first non-empty setting, including partner-era aliases."""
+    return next((value for name in names if (value := os.environ.get(name))), default)
+
+
 SCOUTS = {
     "a": {
         "name": "LARP Scout A",
-        "host": os.environ.get("LARP_A_HOST", "larp-a.local"),
-        "camera": os.environ.get("LARP_A_CAMERA_URL") or "http://larp-a-cam.local/stream",
+        "host": _env_first("LARP_A_HOST", "SCOUT_A_HOST", default="larp-a.local"),
+        "camera": _env_first("LARP_A_CAMERA_URL", "ESP32_ONE_STREAM_URL", default="http://larp-a-cam.local/stream"),
     },
     "b": {
         "name": "LARP Scout B",
-        "host": os.environ.get("LARP_B_HOST", "larp-b.local"),
-        "camera": os.environ.get("LARP_B_CAMERA_URL") or "http://larp-b-cam.local/stream",
+        "host": _env_first("LARP_B_HOST", "SCOUT_B_HOST", default="larp-b.local"),
+        "camera": _env_first("LARP_B_CAMERA_URL", "ESP32_TWO_STREAM_URL", default="http://larp-b-cam.local/stream"),
     },
 }
 

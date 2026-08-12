@@ -145,6 +145,48 @@ flowchart TB
 Read [docs/CHANGES_FROM_ORIGINAL.md](docs/CHANGES_FROM_ORIGINAL.md) for the
 full file-level integration record.
 
+### Current partner compatibility audit
+
+This branch was re-audited against partner repository
+`AloeVeraZ/CityTechClubProjects`, subdirectory `stem-research-academy`, at
+commit `404c7e8`. The target audit started at `b16a505`. The comparison treats
+the partner build as the source of truth for the already-tested Pi drivetrain,
+control protocol, install locations, services, and ECHO motor interface; LARP
+camera/mission features remain extensions.
+
+| Compatibility surface | Partner baseline | Current 3TSahur/LARP result |
+| --- | --- | --- |
+| Pi model/runtime | Raspberry Pi OS, Python system packages, system-site venv | Same package strategy; adds nginx and optional isolated vision tooling. |
+| Application/config paths | `~/STEMResearchAcademy`; `/etc/stem-research-academy/config.env` | Same paths; staged replacement uses the existing service rather than running a second app. |
+| systemd services | `stem-robot-dashboard`, `stem-robot-hotspot` | Same unit names and executable paths; target replaces their definitions and health-checks port 8080. |
+| Mecanum GPIO/PWM | BCM `5/6`, `16/19`, `20/21`, `13/26`; 1 kHz | Exact mapping/frequency retained; mixer and 15 ms shared reversal dead-time retained. |
+| Browser/Pi safety | 300 ms command expiry, sequence rejection, 200 ms watchdog | Retained; unchanged PWM heartbeats are skipped without skipping watchdog refresh. |
+| ECHO drivetrain | EchoLib `TankDrive`, left motor `1`, right motor `6`, brake, 500 ms watchdog | Retained; LARP naming and non-blocking reconnect behavior are added. |
+| Scout API/discovery | `/drive`, `/stop`, `/status`, HTTP registration and UDP heartbeat | Endpoints and discovery payloads retained; timeout is reduced from 200 ms to configurable 120 ms. |
+| Partner persistent keys | `SCOUT_A/B_HOST`, `ESP32_ONE/TWO_STREAM_URL` | Accepted at runtime and migrated into `LARP_A/B_HOST` and `LARP_A/B_CAMERA_URL` on install. |
+| Network identity | `EchoSwarm`, `echoswarm`, `echo-scout-*` | Intentionally changes to `3TSahur-Swarm`, `3tsahur`, `larp-*`; both LARP controllers and cameras must be reflashed. |
+| Pi hostname resolution | Partner installer changed hostname without updating `/etc/hosts` | Installer now backs up and updates only the `127.0.1.1` mapping while preserving unrelated aliases. |
+| Cameras | C270 plus two configured ESP32 stream URLs | C270 retained; adds dedicated AI Thinker-compatible LARP A/B camera firmware and one-active-stream policy. |
+
+```mermaid
+flowchart LR
+    P["Partner installation<br/>same Pi, app path, config, services"] --> B["README backup<br/>app + config"]
+    B --> S["Build replacement in<br/>STEMResearchAcademy.installing.*"]
+    S --> V["Compile + import validation"]
+    V --> X["Stop existing dashboard<br/>atomic same-path swap"]
+    X --> M["Migrate partner config aliases<br/>update hostname mapping"]
+    M --> H["Restart same service<br/>require /healthz"]
+    H --> R["Reboot into 3TSahur-Swarm"]
+    V -. "failure before swap" .-> P
+    H -. "failed health check" .-> P
+```
+
+The software audit cannot validate motor polarity/current, H-bridge ratings,
+actual ECHO motor IDs, camera-board variants, C270 USB power, or 2.4 GHz radio
+conditions. After upgrading, reflash all LARP Wi-Fi devices, then perform the
+[raised-wheel and no-motion checks](docs/TOMORROW_CHECKLIST.md) before a floor
+test.
+
 ### Verified compatibility with the partner baseline
 
 The current project retains the partner team's tested mecanum GPIO mapping,
@@ -648,7 +690,9 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **60 tests successfully**: dashboard/UI,
+The current target desktop simulation ran **63 tests successfully**; the
+independently checked partner baseline ran **32 tests successfully**. The target
+suite covers dashboard/UI,
 mecanum mixing, camera discovery/profile isolation, firmware invariants,
 scout registry, Flask control APIs, mission events, snapshots, and optional
 vision failure handling. Repeated held-command heartbeats are also verified to

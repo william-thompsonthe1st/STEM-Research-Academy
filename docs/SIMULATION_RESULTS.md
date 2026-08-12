@@ -3,17 +3,18 @@
 Date: 2026-08-12
 
 The integration base and the 3TSahur/LARP updates were compiled with Python.
-All 60 hardware-independent tests passed in an isolated desktop virtual
-environment with the repository's Flask dependency installed.
+All 63 hardware-independent target tests passed in an isolated desktop virtual
+environment. The partner repository was also tested independently from its own
+working directory: all 32 of its tests passed.
 
 | Group | Checks | Result |
 | --- | ---: | --- |
 | `test_dashboard_ui.py` | per-robot tabs, lazy MJPEG streams, CSI, vision controls, mission tools, profiles, health panel, non-overlap layout, and static lightweight UI-refresh guard | pass |
 | `test_motor.py` | mecanum mixing, normalization, reversal dead-time, confirmed GPIO/PWM mapping, and redundant-heartbeat write suppression | pass |
 | `test_camera.py` | C270 V4L2 discovery ordering | pass |
-| `test_firmware.py` | LARP reconnect behavior, CSI status fields, capped camera stream rate, unchanged-output suppression, firmware settings, and installer invariants | pass |
+| `test_firmware.py` | LARP reconnect behavior, CSI status fields, capped camera stream rate, unchanged-output suppression, firmware settings, partner-config migration, hostname rollback, and installer invariants | pass |
 | `test_scouts.py` | heartbeat registry handling | pass |
-| `test_server.py` | hub API, expiry/sequence safety, profile/control isolation, timeline, snapshot failure handling, dashboard, and scout proxy behavior | pass |
+| `test_server.py` | hub API, expiry/sequence safety, partner environment aliases, profile/control isolation, timeline, snapshot failure handling, dashboard, and scout proxy behavior | pass |
 | `test_swarm_compatibility.py` | simultaneous 3TSahur, LARP A, and LARP B route compatibility plus local control-path queue check | pass |
 
 The test harness uses fake GPIO/PWM implementations and mocked network/camera

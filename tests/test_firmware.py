@@ -121,6 +121,16 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn("Restoring the previous working application", self.installer)
         self.assertIn("http://127.0.0.1:8080/healthz", self.installer)
 
+    def test_installer_migrates_partner_config_and_hostname_resolution(self):
+        self.assertIn("migrate_config_key LARP_A_CAMERA_URL ESP32_ONE_STREAM_URL", self.installer)
+        self.assertIn("migrate_config_key LARP_B_CAMERA_URL ESP32_TWO_STREAM_URL", self.installer)
+        self.assertIn("migrate_config_key LARP_A_HOST SCOUT_A_HOST", self.installer)
+        self.assertIn("migrate_config_key LARP_B_HOST SCOUT_B_HOST", self.installer)
+        self.assertIn('result.append("127.0.1.1\\t3tsahur")', self.installer)
+        self.assertIn("/etc/hosts.before-3tsahur-", self.installer)
+        self.assertIn('sudo install -o root -g root -m 0600 "$CONFIG_ROLLBACK" "$CONFIG_FILE"', self.installer)
+        self.assertIn('sudo hostnamectl set-hostname "$ORIGINAL_HOSTNAME"', self.installer)
+
     def test_installer_uses_resizable_window_and_simple_dashboard_address(self):
         self.assertIn('nginx-light', self.installer)
         self.assertIn('listen 80 default_server', self.installer)
