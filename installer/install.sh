@@ -300,6 +300,10 @@ LARP_B_CAMERA_URL=
 KIOSK_URL=http://127.0.0.1:8080
 LARP_A_HOST=larp-a.local
 LARP_B_HOST=larp-b.local
+VISION_MODEL=yolo11n_ncnn_model
+VISION_IMAGE_SIZE=320
+VISION_CONFIDENCE=0.45
+VISION_INTERVAL_SECONDS=0.5
 EOF
     sudo install -m 0600 "$CONFIG_TEMP" "$CONFIG_FILE"
     rm -f "$CONFIG_TEMP"
@@ -330,6 +334,10 @@ ensure_config_key LARP_A_CAMERA_URL ""
 ensure_config_key LARP_B_CAMERA_URL ""
 ensure_config_key LARP_A_HOST "larp-a.local"
 ensure_config_key LARP_B_HOST "larp-b.local"
+ensure_config_key VISION_MODEL "yolo11n_ncnn_model"
+ensure_config_key VISION_IMAGE_SIZE "320"
+ensure_config_key VISION_CONFIDENCE "0.45"
+ensure_config_key VISION_INTERVAL_SECONDS "0.5"
 
 # Hotspot credentials are installer-managed so firmware and Pi stay in sync.
 sudo sed -i -E \
