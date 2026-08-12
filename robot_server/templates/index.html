@@ -46,6 +46,7 @@
           <span class="status" id="pi-status"><i></i> Connecting</span>
         </header>
         <div class="drive-card">
+          <label class="camera-profile">Camera profile <select id="camera-profile"><option value="control">Control priority</option><option value="balanced" selected>Balanced</option><option value="detail">Detail</option></select></label>
           <div class="speed-row">
             <label for="speed">Drive speed</label>
             <output id="speed-value">75%</output>
@@ -163,7 +164,7 @@
       </section>
     </section>
   </main>
-  <aside class="mission-tools"><label><input id="deadman" type="checkbox"> Dead-man mode (hold Shift / gamepad A)</label><strong>Mission timeline</strong><ol id="event-list"></ol></aside>
+  <aside class="mission-tools"><label><input id="deadman" type="checkbox"> Dead-man mode (hold Shift / gamepad A)</label><strong>System health</strong><dl id="health-panel"><dt>Pi control</dt><dd>Checking…</dd><dt>Camera</dt><dd>Checking…</dd><dt>Network</dt><dd>Checking…</dd></dl><strong>Mission timeline</strong><ol id="event-list"></ol></aside>
   <button class="kill-all" id="kill-all" type="button">Stop all robots · Esc</button>
   <div class="toast" id="toast" role="status">Controls disconnected — motors stopped</div>
   <script src="{{ url_for('static', filename='dashboard.js', v=4) }}"></script>
