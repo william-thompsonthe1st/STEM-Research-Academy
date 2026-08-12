@@ -144,8 +144,9 @@ sudo systemctl status stem-robot-dashboard
 
 ## Optional pretrained AI vision
 
-The base dashboard does **not** yet run a model automatically. An optional,
-isolated setup is provided for the planned vision service: **Ultralytics
+The base dashboard keeps vision **off by default**. After the optional,
+isolated setup is installed, press `C` or use the per-camera **Vision off/on**
+button to toggle YOLO for the selected robot tab. It uses **Ultralytics
 YOLO11 Nano**, using its pretrained COCO weights and the embedded-friendly
 **NCNN** runtime. It requires no dataset, labeling, or training.
 
@@ -154,6 +155,11 @@ For the Pi 4, use YOLO only on the currently selected dashboard camera at
 only. Do not run three full-resolution inference loops at once; that can
 compete with video and robot-control traffic. The detection output is an
 operator aid, not a safety or identity decision.
+
+Model startup and inference run in a background worker. If the camera, LARP
+stream, CSI telemetry, YOLO package, or model files are unavailable, the UI
+shows that feature as unavailable; driving, stops, and the motor watchdog
+remain independent and active.
 
 ### Vision requirements and install
 
@@ -254,7 +260,6 @@ Then browse to `http://127.0.0.1:8080`. On a non-Pi machine, GPIO behavior is si
 - [Setup guide](docs/SETUP.md) — end-to-end Pi, network, firmware, and first-drive procedure.
 - [Wiring reference](docs/WIRING.md) — exact 3TSahur motor GPIO mapping and ESP32-CAM notes.
 - [Inland ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — upload wiring, pin map, stream verification, and troubleshooting.
-- [Pretrained vision setup](docs/VISION_SETUP.md) — YOLO11 Nano + NCNN prerequisites, install, model export, visual test, and safe Pi operating guidance.
 - [Simulation results](docs/SIMULATION_RESULTS.md) — commands run, passed tests, and test limitations.
 - [Changes from original](docs/CHANGES_FROM_ORIGINAL.md) — what came from the integration base and what changed.
 - [Installer guide](installer/README.md) and [server guide](robot_server/README.md) — package-specific operation details.
