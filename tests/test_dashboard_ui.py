@@ -31,6 +31,15 @@ class DashboardTabTests(unittest.TestCase):
         self.assertIn("feed.removeAttribute('src')", SCRIPT)
         self.assertIn("activateOnlySelectedCamera(id);", SCRIPT)
 
+    def test_larp_tabs_show_the_csi_presence_indicator(self):
+        self.assertEqual(TEMPLATE.count("CSI presence sensor"), 2)
+        self.assertIn('id="scout-a-csi"', TEMPLATE)
+        self.assertIn('id="scout-b-csi"', TEMPLATE)
+        self.assertIn("function renderCsiSensor", SCRIPT)
+        self.assertIn("Possible presence - check video", SCRIPT)
+        self.assertIn("scoutStatusInFlight", SCRIPT)
+        self.assertIn(".csi-sensor.detected", STYLES)
+
     def test_tab_switching_is_keyboard_accessible_and_stops_motion(self):
         self.assertIn('function selectRobotTab', SCRIPT)
         self.assertIn("if (changingTabs) killAll();", SCRIPT)

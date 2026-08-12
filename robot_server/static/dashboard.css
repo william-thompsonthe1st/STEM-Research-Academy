@@ -113,6 +113,21 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--lime); }
 .scout-connection small { color: #7f918d; font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
 .scout-connected .scout-connection strong { color: #d9ff93; }
 .scout-connected .connection-icon { border-color: var(--lime); background: var(--lime); box-shadow: 0 0 20px rgba(185,255,56,.28); color: #14200e; }
+.csi-sensor { margin: 0 0 14px; padding: 12px; border: 1px solid rgba(69, 229, 255, .28); border-radius: 12px; background: rgba(5, 18, 20, .5); }
+.orange-stage .csi-sensor { border-color: rgba(255, 181, 71, .3); background: rgba(28, 20, 7, .46); }
+.csi-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.csi-heading .eyebrow { margin-bottom: 4px; color: var(--cyan); font-size: 9px; }
+.orange-stage .csi-heading .eyebrow { color: var(--orange); }
+.csi-heading strong { display: block; color: #c6d5d2; font-size: 12px; }
+.csi-heading output { color: var(--cyan); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; font-weight: 800; }
+.orange-stage .csi-heading output { color: var(--orange); }
+.csi-meter { height: 7px; margin: 10px 0 7px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, .1); }
+.csi-meter i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--cyan); box-shadow: 0 0 12px rgba(69, 229, 255, .65); transition: width .18s ease, background .18s ease; }
+.orange-stage .csi-meter i { background: var(--orange); box-shadow: 0 0 12px rgba(255, 181, 71, .65); }
+.csi-sensor.detected { border-color: rgba(255, 91, 71, .72); background: rgba(74, 19, 13, .5); }
+.csi-sensor.detected .csi-heading strong, .csi-sensor.detected .csi-heading output { color: #ffd0ca; }
+.csi-sensor.detected .csi-meter i { background: var(--danger); box-shadow: 0 0 14px rgba(255, 91, 71, .75); }
+.csi-sensor p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.35; }
 .scout-controls { display: grid; grid-template-columns: minmax(110px, .7fr) 1.3fr; align-items: end; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: rgba(8, 13, 12, .72); }
 .scout-controls label { display: grid; grid-template-columns: 1fr auto; gap: 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .scout-controls label output { color: var(--cyan); }

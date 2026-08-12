@@ -101,12 +101,14 @@ class ServerTests(unittest.TestCase):
         response = self.client.get("/api/scouts/register?id=Z")
         self.assertEqual(response.status_code, 400)
 
-    @patch("robot_server.app._scout_request", return_value={"id": "A", "motion": False})
+    @patch("robot_server.app._scout_request", return_value={"id": "A", "motion": True, "motion_level": 42.5})
     def test_scout_status_proxy(self, scout_request):
         with patch("robot_server.app.scout_registry.snapshot", return_value={"ip": "10.42.0.20"}):
             response = self.client.get("/api/scouts/a/status")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.get_json()["online"])
+        self.assertTrue(response.get_json()["motion"])
+        self.assertEqual(response.get_json()["motion_level"], 42.5)
         scout_request.assert_called_once_with("a", "/status")
 
     @patch("robot_server.app._scout_request", return_value={"ok": True})

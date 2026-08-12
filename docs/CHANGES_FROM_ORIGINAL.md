@@ -23,6 +23,9 @@ single-file prototype.
 - Made the LARP controller and camera Wi-Fi startup non-blocking, so either
   board can boot before the Pi hotspot and reconnect automatically. ESP32-CAM
   streams are capped at 10 FPS to reserve wireless capacity for controls.
+- Added a LARP-tab CSI presence panel that visualizes the existing ECHO
+  firmware's disturbance value while clearly requiring camera verification;
+  added an Inland ESP32-CAM flashing and troubleshooting guide.
 
 ## Mecanum motor mapping
 

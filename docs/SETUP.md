@@ -25,8 +25,8 @@ Use a current Raspberry Pi OS image with internet access. Clone this repository
 and run the installer as the normal Pi user:
 
 ```bash
-git clone https://github.com/AloeVeraZ/CityTechClubProjects.git
-cd CityTechClubProjects/stem-research-academy
+git clone https://github.com/william-thompsonthe1st/STEM-Research-Academy.git
+cd STEM-Research-Academy
 bash installer/install.sh
 ```
 
@@ -44,6 +44,9 @@ The default mDNS URLs are `http://larp-a-cam.local/stream` and
 ```bash
 sudo systemctl restart stem-robot-dashboard
 ```
+
+For the complete Inland board flash wiring, camera pin map, stream checks, and
+troubleshooting procedure, read [ESP32_CAM_SETUP.md](ESP32_CAM_SETUP.md).
 
 ## 5. Validate without driving
 

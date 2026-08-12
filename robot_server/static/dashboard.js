@@ -18,6 +18,7 @@
   let lastCameraRetryAt = 0;
   let activeRobotTab = '3tsahur';
   const scoutSequences = {a: 0, b: 0};
+  const scoutStatusInFlight = {a: false, b: false};
   const bigKeys = new Set(['w', 'a', 's', 'd', 'q', 'e']);
   const scoutKeys = {
     a: {ArrowLeft: 'left', ArrowUp: 'forward', ArrowDown: 'back', ArrowRight: 'right'},
@@ -347,7 +348,26 @@
     }
   }
 
+  function renderCsiSensor(id, data, online) {
+    const sensor = document.querySelector(`#scout-${id}-csi`);
+    const state = document.querySelector(`#scout-${id}-csi-state`);
+    const levelOutput = document.querySelector(`#scout-${id}-csi-level`);
+    const meter = document.querySelector(`#scout-${id}-csi-meter`);
+    const meterTrack = meter.parentElement;
+    const level = Math.max(0, Math.min(100, Number(data.motion_level) || 0));
+    const detected = online && Boolean(data.motion);
+    sensor.classList.toggle('detected', detected);
+    meter.style.width = `${level}%`;
+    meterTrack.setAttribute('aria-valuenow', String(Math.round(level)));
+    levelOutput.value = online ? `${Math.round(level)}%` : '--';
+    state.textContent = !online
+      ? 'Awaiting Scout telemetry'
+      : detected ? 'Possible presence - check video' : 'No strong disturbance';
+  }
+
   async function refreshScout(id) {
+    if (scoutStatusInFlight[id]) return;
+    scoutStatusInFlight[id] = true;
     const panel = document.querySelector(`[data-scout-panel="${id}"]`);
     const statusElement = document.querySelector(`#scout-${id}-status`);
     const connectionElement = document.querySelector(`#scout-${id}-connection`);
@@ -364,12 +384,16 @@
       motionElement.textContent = data.online
         ? `${data.motion ? 'CSI disturbance' : 'CSI idle'} / ${Math.round(data.motion_level || 0)}%`
         : connected ? 'Heartbeat received' : 'Scout not connected';
+      renderCsiSensor(id, data, Boolean(data.online));
     } catch (_) {
       panel.classList.remove('scout-connected');
       statusElement.classList.add('offline');
       statusElement.innerHTML = '<i></i> Waiting';
       connectionElement.textContent = 'Waiting for LARP heartbeat';
       motionElement.textContent = 'Scout not connected';
+      renderCsiSensor(id, {}, false);
+    } finally {
+      scoutStatusInFlight[id] = false;
     }
   }
 
@@ -381,6 +405,10 @@
   }, 100);
   window.setInterval(refreshStatus, 3000);
   window.setInterval(() => { refreshScout('a'); refreshScout('b'); }, 2000);
+  window.setInterval(() => {
+    const id = activeRobotTab === 'larp-a' ? 'a' : activeRobotTab === 'larp-b' ? 'b' : null;
+    if (id) refreshScout(id);
+  }, 750);
   activateOnlySelectedCamera(activeRobotTab);
   refreshStatus();
   refreshScout('a');

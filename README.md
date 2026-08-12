@@ -150,6 +150,15 @@ sudo systemctl status stem-robot-dashboard
 
 Upload one copy configured as `A` and one as `B` for each firmware type. The [LARP controller README](firmware/larp-scout/README.md) and [camera README](firmware/larp-esp32-cam/README.md) cover dependencies and upload notes.
 
+### ESP32-CAM quick start
+
+The Inland ESP32-CAM is a separate Wi-Fi video node, not a motor-controller
+accessory. Flash it as `A` or `B`, connect it to stable 5 V power, and use the
+matching `larp-a-cam.local/stream` or `larp-b-cam.local/stream` address. The
+dashboard opens only the selected LARP feed to protect control responsiveness.
+See the complete [Inland ESP32-CAM setup guide](docs/ESP32_CAM_SETUP.md) for
+the flash wiring, pin map, network fallback, and troubleshooting steps.
+
 ## Tests and simulation evidence
 
 The hardware-independent test suite exercises simulated GPIO/PWM motor decisions, camera discovery, scout command proxy behavior, firmware settings, and installer invariants.
@@ -164,7 +173,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **39 tests successfully**: 5 dashboard UI, 5 motor, 1 camera, 11 firmware, 2 scout-registry, and 15 Flask API/dashboard tests. Hardware validation is still required for motor polarity, motor current, Wi-Fi range, camera focus, and an emergency-stop test. Read [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact results and limitations.
+The recorded desktop simulation ran **41 tests successfully**: 6 dashboard UI, 5 motor, 1 camera, 12 firmware, 2 scout-registry, and 15 Flask API/dashboard tests. Hardware validation is still required for motor polarity, motor current, Wi-Fi range, camera focus, CSI calibration, and an emergency-stop test. Read [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact results and limitations.
 
 ## Project structure
 
@@ -200,6 +209,7 @@ Then browse to `http://127.0.0.1:8080`. On a non-Pi machine, GPIO behavior is si
 
 - [Setup guide](docs/SETUP.md) — end-to-end Pi, network, firmware, and first-drive procedure.
 - [Wiring reference](docs/WIRING.md) — exact 3TSahur motor GPIO mapping and ESP32-CAM notes.
+- [Inland ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — upload wiring, pin map, stream verification, and troubleshooting.
 - [Simulation results](docs/SIMULATION_RESULTS.md) — commands run, passed tests, and test limitations.
 - [Changes from original](docs/CHANGES_FROM_ORIGINAL.md) — what came from the integration base and what changed.
 - [Installer guide](installer/README.md) and [server guide](robot_server/README.md) — package-specific operation details.

@@ -46,6 +46,13 @@ class LarpFirmwareTests(unittest.TestCase):
             self.assertIn(f'"{endpoint}"', self.source)
         self.assertNotIn("192, 168, 4", self.source)
 
+    def test_csi_presence_signal_is_available_to_the_dashboard(self):
+        self.assertIn("csiMotionDetected", self.source)
+        self.assertIn("csiMotionLevel", self.source)
+        self.assertIn('"\\\"motion\\\":"', self.source)
+        self.assertIn('"\\\"motion_level\\\":"', self.source)
+        self.assertIn("CSI_VARIANCE_THRESHOLD", self.source)
+
     def test_larp_devices_retry_the_pi_hotspot_without_blocking_startup(self):
         self.assertIn("void beginWiFi()", self.source)
         self.assertIn("void maintainWiFi()", self.source)

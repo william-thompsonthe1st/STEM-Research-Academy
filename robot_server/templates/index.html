@@ -88,6 +88,17 @@
           <strong id="scout-a-connection">Waiting for LARP heartbeat</strong>
           <small>Arrow keys</small>
         </div>
+        <section class="csi-sensor" id="scout-a-csi" aria-labelledby="scout-a-csi-title">
+          <div class="csi-heading">
+            <div>
+              <p class="eyebrow" id="scout-a-csi-title">CSI presence sensor</p>
+              <strong id="scout-a-csi-state">Awaiting Scout A telemetry</strong>
+            </div>
+            <output id="scout-a-csi-level">--</output>
+          </div>
+          <div class="csi-meter" role="progressbar" aria-label="Scout A channel-state disturbance level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="scout-a-csi-meter"></i></div>
+          <p>Signal disturbance only - verify any possible presence with the camera.</p>
+        </section>
         <div class="scout-controls" data-scout="a">
           <label>Speed <output>35%</output><input type="range" min="10" max="70" value="35"></label>
           <div class="scout-pad" aria-label="LARP Scout A controls">
@@ -122,6 +133,17 @@
           <strong id="scout-b-connection">Waiting for LARP heartbeat</strong>
           <small>I / J / K / L keys</small>
         </div>
+        <section class="csi-sensor" id="scout-b-csi" aria-labelledby="scout-b-csi-title">
+          <div class="csi-heading">
+            <div>
+              <p class="eyebrow" id="scout-b-csi-title">CSI presence sensor</p>
+              <strong id="scout-b-csi-state">Awaiting Scout B telemetry</strong>
+            </div>
+            <output id="scout-b-csi-level">--</output>
+          </div>
+          <div class="csi-meter" role="progressbar" aria-label="Scout B channel-state disturbance level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="scout-b-csi-meter"></i></div>
+          <p>Signal disturbance only - verify any possible presence with the camera.</p>
+        </section>
         <div class="scout-controls" data-scout="b">
           <label>Speed <output>35%</output><input type="range" min="10" max="70" value="35"></label>
           <div class="scout-pad" aria-label="LARP Scout B controls">
