@@ -21,6 +21,51 @@ flowchart LR
   C -. "MJPEG video over 2.4 GHz Wi-Fi" .-> P
 ```
 
+## Pins visible on your boards
+
+The supplied rear-view ESP32-CAM image shows these header labels. This table
+separates the two wires used during normal operation from pins that are used
+only for flashing or other board functions.
+
+| ESP32-CAM side | Labels visible in the supplied image | Normal operation |
+| --- | --- | --- |
+| Left | `5V`, `GND`, GPIO `12`, `13`, `15`, `14`, `2`, `4` | Use a labeled `5V` and `GND` pair suitable for the camera power cable; leave the GPIO pins disconnected. |
+| Right | `3.3V`, GPIO `16`, GPIO `0`, `GND`, `3.3V/5V`, GPIO `3`/`U0RXD`, GPIO `1`/`U0TXD`, `GND` | Leave these disconnected in normal use. GPIO 0 and UART are connected only during the separate flashing procedure below. |
+
+The photo shows more than one power/ground label. It does not establish which
+duplicate header is mechanically best for the user's cable, so use a clearly
+labeled **5V** input and **GND** beside the board only after checking its
+silk-screen orientation. Do not feed the camera through a 3.3 V pin.
+
+The supplied ECHO image shows 5 V/GND and 3.3 V/GND header rows, labeled I/O,
+and default I²C pins GPIO `17` (SDA) and GPIO `18` (SCL). It labels its motor
+terminals as follows:
+
+| ECHO motor number | GPIO labels shown |
+| --- | --- |
+| 1 | `47` / `48` |
+| 2 | `38` / `21` |
+| 3 | `1` / `2` |
+| 4 | `4` / `5` |
+| 5 | `7` / `6` |
+| 6 | `16` / `15` |
+
+Those are ECHO controller references only. The retained drive firmware uses
+motor IDs 1 and 6. Do not connect any ESP32-CAM pin to those motor terminals,
+the I²C pins, GPIO headers, or ECHO power headers, and do not change working
+motor wiring merely because the labels are documented here. The ECHO board's
+available camera-power current has not been established, so its 5 V row is not
+an approved camera supply.
+
+| Connection | Allowed in normal operation? | Reason |
+| --- | --- | --- |
+| Separate regulated 5 V (at least 1 A) → ESP32-CAM labeled `5V`; supply GND → camera `GND` | **Yes** | This is the camera's independent power connection. |
+| ECHO ↔ Pi hotspot and ESP32-CAM ↔ Pi hotspot | **Yes, over Wi-Fi only** | Drive/heartbeat and video are independent network traffic. |
+| ESP32-CAM UART/GPIO/camera pins → ECHO GPIO or I²C | **No** | No runtime data link exists between the boards. |
+| ESP32-CAM or camera supply → ECHO motor terminals | **No** | Motor terminals are not camera power or data connections. |
+| Separate camera-supply positive → ECHO or Pi 5 V | **No** | Positive rails must not be joined. |
+| Ground wire between electrically separate ECHO and camera supplies | **Not required** | Add common ground only when the power design intentionally shares a supply/reference. |
+
 ## Required setup for each scout
 
 | Item | Requirement | Why it matters |

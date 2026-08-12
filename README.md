@@ -335,6 +335,19 @@ flowchart LR
     N ~~~ C
 ```
 
+Pins visible in the supplied board photos, for identification only:
+
+| Board | Labels visible | Normal-run camera connection |
+| --- | --- | --- |
+| Inland ESP32-CAM | Left: `5V`, `GND`, GPIO `12`, `13`, `15`, `14`, `2`, `4`; right: `3.3V`, GPIO `16`, `0`, `GND`, `3.3V/5V`, `U0RXD`/GPIO `3`, `U0TXD`/GPIO `1`, `GND` | Connect the separate regulated supply only to a labeled **5V** and **GND** pair suitable for the power cable. Leave every GPIO and UART pin disconnected after flashing. |
+| 3D Buffalo ECHO | 5 V/GND and 3.3 V/GND header rows; GPIO headers; I²C GPIO `17` SDA / `18` SCL; motor terminals 1–6 | **No camera connection.** Keep its existing drive and motor wiring; do not use its power, GPIO, I²C, or motor terminals for the camera. |
+
+The ECHO photo labels motor 1 as GPIO `47/48`, motor 2 as `38/21`, motor 3
+as `1/2`, motor 4 as `4/5`, motor 5 as `7/6`, and motor 6 as `16/15`. These
+labels are an ECHO controller reference—not ESP32-CAM wiring instructions.
+This firmware retains ECHO motor IDs 1 and 6; do not move motor connections
+solely because they are listed here.
+
 Power the camera from a stable, separately regulated **5 V supply rated for at
 least 1 A**. Motor power stays separately fused and switched. If both systems
 are fed from one battery, their grounds meet at the shared power reference; if
@@ -353,7 +366,8 @@ Set up each scout in this order:
    below. Match `CAMERA_ID` to that scout: `A` with ECHO `A`, or `B` with ECHO
    `B`; use the same hotspot credentials.
 3. Remove all temporary camera upload wiring, including the GPIO 0 boot jumper.
-   Mount the camera securely and connect only its regulated 5 V and GND power.
+   Mount the camera securely and connect only its regulated 5 V and GND power
+   to a suitable labeled `5V`/`GND` pair on the camera board.
 4. Boot the Pi first and wait for `3TSahur-Swarm`; then power the ECHO controller
    and camera. Keep the wheels raised or motor power removed for this check.
 5. Confirm the matching LARP dashboard tab shows the ECHO heartbeat/status.
