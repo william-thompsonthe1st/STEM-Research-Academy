@@ -50,6 +50,18 @@ class DashboardTabTests(unittest.TestCase):
         self.assertIn("Vision unavailable - robot controls remain active", SCRIPT)
         self.assertIn(".vision-overlay", STYLES)
 
+    def test_mission_tools_profiles_and_health_are_optional_dashboard_features(self):
+        self.assertIn('id="camera-profile"', TEMPLATE)
+        self.assertIn('id="health-panel"', TEMPLATE)
+        self.assertEqual(TEMPLATE.count('data-snapshot="'), 3)
+        self.assertEqual(TEMPLATE.count('data-calibrate="'), 2)
+        self.assertIn('id="deadman"', TEMPLATE)
+        self.assertIn('id="event-list"', TEMPLATE)
+        self.assertIn("/api/camera/profile", SCRIPT)
+        self.assertIn("/api/snapshots/${source}", SCRIPT)
+        self.assertIn("navigator.getGamepads", SCRIPT)
+        self.assertIn("lastGamepadSignature", SCRIPT)
+
     def test_tab_switching_is_keyboard_accessible_and_stops_motion(self):
         self.assertIn('function selectRobotTab', SCRIPT)
         self.assertIn("if (changingTabs) killAll();", SCRIPT)
