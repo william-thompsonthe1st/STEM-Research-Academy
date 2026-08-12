@@ -17,6 +17,8 @@
   let lastVector = '';
   let lastCameraRetryAt = 0;
   let activeRobotTab = '3tsahur';
+  let gimbalMode = false;
+  let actuatorState = {gimbal: {pan: 0, tilt: 0}, ramp: {state: 'down'}};
   const scoutSequences = {a: 0, b: 0};
   const scoutStatusInFlight = {a: false, b: false};
   const visionEnabled = {'3tsahur': false, 'larp-a': false, 'larp-b': false};
@@ -214,6 +216,7 @@
       panel.hidden = !selected;
     });
     activateOnlySelectedCamera(id);
+    if (id !== "3tsahur" && gimbalMode) setGimbalMode(false, false);
     // A tab change changes the operator's visual context. Stop all movement
     // before showing another robot so a held or touch command cannot continue.
     if (changingTabs) killAll();
@@ -292,6 +295,56 @@
     }
   }
 
+  function renderActuatorStatus(data = actuatorState) {
+    actuatorState = data || actuatorState;
+    const gimbal = actuatorState.gimbal || {pan: 0, tilt: 0};
+    const ramp = actuatorState.ramp || {state: "down"};
+    document.querySelector("#gimbal-readout").value = "Pan " + gimbal.pan + "° · Tilt " + gimbal.tilt + "°";
+    document.querySelector("#ramp-toggle").textContent = (ramp.state === "up" ? "Lower" : "Raise") + " ramp · R";
+    document.querySelector("#actuator-status").value = actuatorState.configured
+      ? "Servo driver ready"
+      : "Planning only · no servo output";
+  }
+
+  function setGimbalMode(enabled, announce = true) {
+    gimbalMode = Boolean(enabled) && activeRobotTab === "3tsahur";
+    const button = document.querySelector("#gimbal-mode");
+    button.setAttribute("aria-pressed", String(gimbalMode));
+    button.textContent = "Gimbal mode " + (gimbalMode ? "on" : "off") + " · G";
+    if (gimbalMode) killBig();
+    if (announce) showToast(gimbalMode ? "Gimbal mode: use arrow keys to aim camera" : "Gimbal mode off");
+  }
+
+  async function sendGimbal(deltaPan = 0, deltaTilt = 0) {
+    const current = actuatorState.gimbal || {pan: 0, tilt: 0};
+    try {
+      const response = await fetch("/api/actuators/gimbal", {
+        method: "POST", headers: {"Content-Type": "application/json"}, cache: "no-store",
+        body: JSON.stringify({pan: Number(current.pan) + deltaPan, tilt: Number(current.tilt) + deltaTilt})
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      renderActuatorStatus(data);
+    } catch (error) {
+      showToast(error.message || "Gimbal command unavailable");
+    }
+  }
+
+  async function toggleRamp() {
+    const next = actuatorState.ramp?.state === "up" ? "down" : "up";
+    try {
+      const response = await fetch("/api/actuators/ramp", {
+        method: "POST", headers: {"Content-Type": "application/json"}, cache: "no-store",
+        body: JSON.stringify({state: next})
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      renderActuatorStatus(data);
+      showToast("Ramp target: " + next + (data.configured ? "" : " (awaiting driver configuration)"));
+    } catch (error) {
+      showToast(error.message || "Ramp command unavailable");
+    }
+  }
   function keyMotion(event, id) {
     return scoutKeys[id][id === 'a' ? event.key : event.key.toLowerCase()];
   }
@@ -312,6 +365,24 @@
       event.preventDefault();
       toggleVision(activeRobotTab);
       return;
+    }
+    if (activeRobotTab === '3tsahur' && key === 'g' && !event.repeat) {
+      event.preventDefault();
+      setGimbalMode(!gimbalMode);
+      return;
+    }
+    if (activeRobotTab === '3tsahur' && key === 'r' && !event.repeat) {
+      event.preventDefault();
+      toggleRamp();
+      return;
+    }
+    if (activeRobotTab === '3tsahur' && gimbalMode && !event.repeat) {
+      const gimbalKey = {ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, 10], ArrowDown: [0, -10]}[event.key];
+      if (gimbalKey) {
+        event.preventDefault();
+        sendGimbal(...gimbalKey);
+        return;
+      }
     }
     if (bigKeys.has(key)) {
       event.preventDefault();
@@ -360,6 +431,12 @@
   document.querySelector('#stop').addEventListener('click', () => killBig(true));
   document.querySelector('#kill-all').addEventListener('click', () => killAll(true));
   document.querySelectorAll('[data-vision-toggle]').forEach(button => button.addEventListener('click', () => toggleVision(button.dataset.visionToggle)));
+  document.querySelector('#gimbal-mode').addEventListener('click', () => setGimbalMode(!gimbalMode));
+  document.querySelector('#ramp-toggle').addEventListener('click', toggleRamp);
+  document.querySelectorAll('[data-gimbal]').forEach(button => button.addEventListener('click', () => {
+    const delta = {'pan-left': [-10, 0], 'pan-right': [10, 0], 'tilt-up': [0, 10], 'tilt-down': [0, -10]}[button.dataset.gimbal];
+    if (delta) sendGimbal(...delta);
+  }));
   speed.addEventListener('input', () => { speedValue.value = `${speed.value}%`; sendBig(true); });
 
   robotTabs.forEach((tab, index) => {
@@ -414,6 +491,7 @@
       }
       const hardwareReady = data.gpio === 'hardware';
       cameraProfile.value = data.camera_profile || 'balanced';
+      renderActuatorStatus(data.actuators);
       document.querySelector('#health-panel').innerHTML = `<dt>Pi control</dt><dd>${hardwareReady ? 'ready' : 'simulation'}</dd><dt>Camera</dt><dd>${data.camera_available ? `${data.camera_width}x${data.camera_height} @ ${data.camera_fps}` : 'unavailable'}</dd><dt>Network</dt><dd>${location.host}</dd>`;
       status.classList.toggle('offline', !hardwareReady);
       status.innerHTML = `<i></i> ${hardwareReady ? 'Pi controls ready' : 'GPIO unavailable - motors disabled'}`;
