@@ -76,6 +76,48 @@ normal operation requires cloud access.
 - The mission timeline is capped at 120 in-memory events. Snapshots are saved
   locally by the Pi; copy any images you need before rebooting or updating.
 
+### Quick field-validation flow
+
+```mermaid
+flowchart LR
+    A["Boot Pi hub"] --> B["Join local hotspot"] --> C["Verify C270 and one LARP stream"]
+    C --> D["Raised-wheel stop and direction test"] --> E["Calibrate CSI"]
+    E --> F["Enable optional YOLO / gamepad"] --> G["Ground test at low speed"]
+```
+
+For the next field session, use the step-by-step
+[tomorrow checklist](docs/TOMORROW_CHECKLIST.md). It includes the precise
+gimbal/ramp servo information needed before new actuator code is written.
+
+## What changed from the partner integration base
+
+The partner repository remains the software foundation. We retained the Python
+server/package structure, motor-control pattern, hotspot installer, systemd
+deployment, and original Pi mecanum GPIO mapping; the work here adapts and
+extends that base for the 3TSahur/LARP swarm.
+
+| Area | Partner-base behavior retained | 3TSahur/LARP changes |
+| --- | --- | --- |
+| Drivetrain | Python mecanum drive and GPIO architecture | Names changed only; exact BCM mapping remains `5/6`, `16/19`, `20/21`, `13/26`. |
+| Deployment | Hotspot, service, kiosk, installer/update rollback | 3TSahur names, local operator workflow, beginner setup/checklists. |
+| Dashboard | Responsive browser controls | Three robot tabs, single active stream, health panel, profiles, timeline, gamepad/dead-man controls. |
+| Scouts | ECHO drive/control foundations | LARP A/B identities, Wi-Fi recovery, heartbeats, CSI display/calibration, separate camera feeds. |
+| Vision | No optional hub inference workflow | Per-feed YOLO11 Nano toggles, overlays, snapshots, and failure isolation. |
+| Validation | Original functional test foundation | Expanded simulation coverage, API expiry/sequence checks, feature-isolation checks, and timing results. |
+
+```mermaid
+flowchart TB
+    Base["Partner integration base\nserver · GPIO architecture · hotspot · installer"] --> Retained["Retained without drivetrain-pin changes"]
+    Retained --> Hub["3TSahur hub\nC270 · mecanum · camera profiles"]
+    Retained --> Scouts["LARP Scout A / B\nECHO · ESP32-CAM · CSI"]
+    Hub --> Dashboard["Tabbed operator dashboard\ncontrols · health · timeline"]
+    Scouts --> Dashboard
+    Dashboard --> Optional["Optional YOLO · snapshots · gamepad · dead-man"]
+```
+
+Read [docs/CHANGES_FROM_ORIGINAL.md](docs/CHANGES_FROM_ORIGINAL.md) for the
+full file-level integration record.
+
 ## Dashboard
 
 Open `http://10.42.0.1` after connecting to the 3TSahur hotspot. On a device that supports mDNS, `http://3tsahur.local` also works. The Pi's attached display opens the same dashboard automatically after installation.
@@ -336,6 +378,7 @@ Then browse to `http://127.0.0.1:8080`. On a non-Pi machine, GPIO behavior is si
 ## Documentation
 
 - [Setup guide](docs/SETUP.md) — end-to-end Pi, network, firmware, and first-drive procedure.
+- [Tomorrow field checklist](docs/TOMORROW_CHECKLIST.md) — physical validation and the servo/gimbal data required for the next development step.
 - [Wiring reference](docs/WIRING.md) — exact 3TSahur motor GPIO mapping and ESP32-CAM notes.
 - [Inland ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — upload wiring, pin map, stream verification, and troubleshooting.
 - [Simulation results](docs/SIMULATION_RESULTS.md) — commands run, passed tests, and test limitations.
