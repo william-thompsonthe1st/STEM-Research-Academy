@@ -21,6 +21,7 @@
 | Safety | Stop stale commands automatically; includes sequence checks, watchdogs, and a kill-all control. |
 | Deployment | Configure a Pi hotspot, dashboard service, local touchscreen/display kiosk, and mDNS address. |
 | Optional AI vision | Prepare pretrained YOLO11 Nano person detection for the selected C270 or LARP camera feed. |
+| Mission tools | Keep a bounded event timeline, save per-camera snapshots, calibrate LARP CSI baselines, and use browser gamepads/dead-man control. |
 
 ## System overview
 
