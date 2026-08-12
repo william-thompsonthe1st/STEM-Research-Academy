@@ -64,9 +64,10 @@ The dashboard works with mouse/touch controls and the following keyboard shortcu
 | 3TSahur | `W` / `S` | Forward / reverse |
 | 3TSahur | `A` / `D` | Strafe left / right |
 | 3TSahur | `Q` / `E` | Rotate left / right |
+| 3TSahur | `Space` | Stop the hub drivetrain |
 | LARP Scout A | Arrow keys | Forward, reverse, left, right |
 | LARP Scout B | `I` / `K` / `J` / `L` | Forward, reverse, left, right |
-| All robots | `Space` or `Esc` | Stop / emergency kill-all |
+| All robots | `Esc` | Emergency kill-all |
 
 Commands are deliberately short-lived. Releasing a key, losing the client connection, or letting the watchdog expire stops the affected robot.
 
