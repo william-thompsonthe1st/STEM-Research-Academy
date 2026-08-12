@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="server-time-ms" content="{{ server_time_ms }}">
   <title>3TSahur Swarm Control</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=4) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=5) }}">
 </head>
 <body>
   <main class="dashboard">
@@ -14,7 +14,7 @@
         <p class="eyebrow">3TSahur-Swarm local command center</p>
         <h1>Reconnaissance dashboard</h1>
       </div>
-      <span class="dashboard-note">Select a robot to view its live feed and controls</span>
+      <div class="dashboard-note"><span>One active camera stream</span><span>Watchdog-protected controls</span></div>
     </header>
 
     <div class="robot-tabs" role="tablist" aria-label="Robot dashboards">
@@ -164,9 +164,9 @@
       </section>
     </section>
   </main>
-  <aside class="mission-tools"><label><input id="deadman" type="checkbox"> Dead-man mode (hold Shift / gamepad A)</label><strong>System health</strong><dl id="health-panel"><dt>Pi control</dt><dd>Checking…</dd><dt>Camera</dt><dd>Checking…</dd><dt>Network</dt><dd>Checking…</dd></dl><strong>Mission timeline</strong><ol id="event-list"></ol></aside>
+  <aside class="mission-tools" aria-label="Mission tools"><label><input id="deadman" type="checkbox"> Dead-man mode <small>Hold Shift / gamepad A</small></label><strong>System health</strong><dl id="health-panel"><dt>Pi control</dt><dd>Checking…</dd><dt>Camera</dt><dd>Checking…</dd><dt>Network</dt><dd>Checking…</dd></dl><strong>Mission timeline</strong><ol id="event-list" aria-live="polite"></ol></aside>
   <button class="kill-all" id="kill-all" type="button">Stop all robots · Esc</button>
   <div class="toast" id="toast" role="status">Controls disconnected — motors stopped</div>
-  <script src="{{ url_for('static', filename='dashboard.js', v=4) }}"></script>
+  <script src="{{ url_for('static', filename='dashboard.js', v=5) }}"></script>
 </body>
 </html>
