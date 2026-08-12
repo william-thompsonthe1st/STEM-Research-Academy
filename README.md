@@ -300,6 +300,62 @@ curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Researc
 The installer intentionally reboots. Read the script or use the clone method
 below first if your team prefers to inspect every install step locally.
 
+### Fix a Pi hostname warning before installing
+
+If `sudo` prints `unable to resolve host ...: Name or service not known`, the
+Pi's current hostname and `/etc/hosts` do not agree. This is a local Raspberry
+Pi OS configuration warning, **not** a Git or GitHub conflict. A single warning
+may still appear on the first `sudo` command below, before the repair takes
+effect.
+
+Run this block as the normal Pi user. It detects the Pi's actual hostname
+(rather than assuming `3tsahur`), backs up `/etc/hosts`, writes the two required
+local mappings, verifies them, and retries the package-index update:
+
+```bash
+set -Eeuo pipefail
+
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Run this as the normal Pi user, not root." >&2
+    exit 1
+fi
+if ! command -v sudo >/dev/null 2>&1; then
+    echo "sudo is required but was not found." >&2
+    exit 1
+fi
+
+pi_hostname="$(hostnamectl --static 2>/dev/null || true)"
+if [ -z "$pi_hostname" ]; then
+    pi_hostname="$(hostname 2>/dev/null || true)"
+fi
+if [ -z "$pi_hostname" ] || [ "${#pi_hostname}" -gt 253 ] || \
+   ! printf '%s\n' "$pi_hostname" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$'; then
+    echo "Could not determine a safe current hostname; no files were changed." >&2
+    exit 1
+fi
+
+hosts_backup="/etc/hosts.before-stem-install-$(date +%Y%m%d-%H%M%S)"
+hosts_temp="$(mktemp)"
+trap 'rm -f -- "$hosts_temp"' EXIT
+printf '127.0.0.1\tlocalhost\n127.0.1.1\t%s\n' "$pi_hostname" > "$hosts_temp"
+
+sudo cp --preserve=mode,ownership,timestamps -- /etc/hosts "$hosts_backup"
+sudo install -o root -g root -m 0644 "$hosts_temp" /etc/hosts
+
+getent hosts localhost
+getent hosts "$pi_hostname"
+echo "Hostname repair complete for: $pi_hostname"
+echo "Backup saved at: $hosts_backup"
+
+sudo apt-get update
+```
+
+This intentionally creates a minimal `/etc/hosts`; restore the timestamped
+backup if the Pi previously depended on custom local aliases. If hostname
+resolution succeeds but `apt-get update` reports a repository/source error,
+that is a separate APT/network issue and must be diagnosed from its exact URL
+and error message.
+
 ### Copy/paste Pi upgrade from the partner installation
 
 If the Pi already runs the partner project or another dashboard build, **do
