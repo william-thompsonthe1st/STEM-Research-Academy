@@ -49,7 +49,9 @@
       const controller = new AbortController();
       const currentGeneration = ++generation;
       active = {controller, generation: currentGeneration};
-      const timeout = window.setTimeout(() => controller.abort(), 180);
+      // Drive requests use a small latest-command budget. A delayed request is
+      // discarded so the next current command is never stuck behind it.
+      const timeout = window.setTimeout(() => controller.abort(), 140);
       try {
         const response = await fetch(url, {
           method: 'POST',
@@ -528,6 +530,9 @@
   }
 
   async function refreshScout(id) {
+    // Status/CSI is auxiliary. Do not compete with a held drive command on the
+    // scout's Wi-Fi radio or HTTP server; the watchdog remains independent.
+    if (scoutPressed[id].size) return;
     if (scoutStatusInFlight[id]) return;
     scoutStatusInFlight[id] = true;
     const panel = document.querySelector(`[data-scout-panel="${id}"]`);
@@ -565,13 +570,15 @@
   window.setInterval(() => { if (bigPressed.size) sendBig(true); }, 80);
   window.setInterval(() => {
     for (const id of ['a', 'b']) if (scoutPressed[id].size) sendScout(id, activeScoutMotion(id));
-  }, 100);
+  }, 80);
   window.setInterval(refreshStatus, 3000);
-  window.setInterval(() => { refreshScout('a'); refreshScout('b'); }, 2000);
+  // Inactive scouts already advertise UDP heartbeats. Poll them slowly for
+  // optional CSI/UI freshness, reserving hotspot airtime for drive traffic.
+  window.setInterval(() => { refreshScout('a'); refreshScout('b'); }, 5000);
   window.setInterval(() => {
     const id = activeRobotTab === 'larp-a' ? 'a' : activeRobotTab === 'larp-b' ? 'b' : null;
     if (id) refreshScout(id);
-  }, 750);
+  }, 1200);
   window.setInterval(() => refreshVision(activeRobotTab), 500);
   const deadman = document.querySelector('#deadman');
   const cameraProfile = document.querySelector('#camera-profile');
