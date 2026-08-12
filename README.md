@@ -389,6 +389,40 @@ For the complete LARP-level procedure—including power separation, when an
 Arduino can safely act as a serial bridge, controller/camera pairing, and a
 field-test checklist—read the [LARP camera/controller integration guide](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md).
 
+### Flash an Inland ESP32-CAM
+
+Use these steps once for **Scout A** and again for **Scout B**. The ESP32-CAM
+is the scout's Wi-Fi video node; it does not connect to or control the ECHO
+motor controller.
+
+1. Install Arduino IDE and the **esp32 by Espressif Systems** board package.
+2. Before applying power, verify that the Inland module uses the
+   AI Thinker-compatible camera layout. Use a stable regulated 5 V supply
+   capable of at least 1 A—never a Raspberry Pi GPIO pin or the ECHO logic
+   rail.
+3. Connect a 3.3 V-safe USB-to-serial adapter: adapter **5 V** to camera
+   **5 V**, **GND** to **GND**, adapter **TX** to **U0R / GPIO 3**, and adapter
+   **RX** to **U0T / GPIO 1**. For uploading only, connect **GPIO 0** to
+   **GND**.
+4. In Arduino IDE, select **AI Thinker ESP32-CAM**, choose the adapter's serial
+   port, and open
+   [`firmware/larp-esp32-cam/larp_esp32_cam.ino`](firmware/larp-esp32-cam/larp_esp32_cam.ino).
+   If the upload is unreliable, lower the upload speed.
+5. Set `CAMERA_ID` to `'A'` for Scout A or `'B'` for Scout B. Set
+   `WIFI_SSID` and `WIFI_PASSWORD` to the exact credentials for the
+   `3TSahur-Swarm` Pi hotspot.
+6. Upload the sketch. If it stays at “Connecting,” briefly press **Reset**
+   while Arduino IDE is connecting.
+7. Remove the GPIO 0-to-GND jumper, press **Reset**, and power the board
+   normally. It will not boot the camera firmware while GPIO 0 remains grounded.
+8. Join a phone, tablet, or computer to the Pi hotspot and check
+   `http://larp-a-cam.local/status` and
+   `http://larp-a-cam.local/stream` (replace `a` with `b` for Scout B).
+   The matching LARP dashboard tab should then open the feed automatically.
+
+For the full connection table, pin map, network fallback, and troubleshooting,
+see [the Inland ESP32-CAM setup guide](docs/ESP32_CAM_SETUP.md).
+
 ## Tests and simulation evidence
 
 The hardware-independent test suite exercises simulated GPIO/PWM motor decisions, camera discovery, scout command proxy behavior, firmware settings, and installer invariants.
