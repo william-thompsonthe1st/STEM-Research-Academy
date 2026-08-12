@@ -40,6 +40,16 @@ class DashboardTabTests(unittest.TestCase):
         self.assertIn("scoutStatusInFlight", SCRIPT)
         self.assertIn(".csi-sensor.detected", STYLES)
 
+    def test_vision_has_a_per_camera_toggle_and_overlay(self):
+        for source in ("3tsahur", "larp-a", "larp-b"):
+            self.assertIn(f'data-vision-toggle="{source}"', TEMPLATE)
+            self.assertIn(f'data-vision-overlay="{source}"', TEMPLATE)
+        self.assertIn("key === 'c'", SCRIPT)
+        self.assertIn("toggleVision(activeRobotTab)", SCRIPT)
+        self.assertIn("/api/vision/${source}", SCRIPT)
+        self.assertIn("Vision unavailable - robot controls remain active", SCRIPT)
+        self.assertIn(".vision-overlay", STYLES)
+
     def test_tab_switching_is_keyboard_accessible_and_stops_motion(self):
         self.assertIn('function selectRobotTab', SCRIPT)
         self.assertIn("if (changingTabs) killAll();", SCRIPT)
