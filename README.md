@@ -400,7 +400,7 @@ offline-use notes, and a hardware validation checklist. Upstream references:
 | Target | Sketch | Set before upload |
 | --- | --- | --- |
 | LARP Scout A/B ECHO board | [firmware/larp-scout/larp_scout_controller.ino](firmware/larp-scout/larp_scout_controller.ino) | `ROBOT_ID`, Wi-Fi credentials, and any board-specific library setup. |
-| Inland ESP32-CAM A/B | [firmware/larp-esp32-cam/larp_esp32_cam.ino](firmware/larp-esp32-cam/larp_esp32_cam.ino) | `CAMERA_ID`, Wi-Fi credentials, and the camera board profile. |
+| Inland ESP32-CAM A/B | [firmware/larp-esp32-cam/larp-esp32-cam.ino](firmware/larp-esp32-cam/larp-esp32-cam.ino) | `CAMERA_ID`, Wi-Fi credentials, and the camera board profile. |
 
 Upload one copy configured as `A` and one as `B` for each firmware type. The [LARP controller README](firmware/larp-scout/README.md) and [camera README](firmware/larp-esp32-cam/README.md) cover dependencies and upload notes.
 
@@ -433,7 +433,7 @@ motor controller.
    **GND**.
 4. In Arduino IDE, select **AI Thinker ESP32-CAM**, choose the adapter's serial
    port, and open
-   [`firmware/larp-esp32-cam/larp_esp32_cam.ino`](firmware/larp-esp32-cam/larp_esp32_cam.ino).
+   [`firmware/larp-esp32-cam/larp-esp32-cam.ino`](firmware/larp-esp32-cam/larp-esp32-cam.ino).
    If the upload is unreliable, lower the upload speed.
 5. Set `CAMERA_ID` to `'A'` for Scout A or `'B'` for Scout B. Set
    `WIFI_SSID` and `WIFI_PASSWORD` to the exact credentials for the
@@ -531,7 +531,7 @@ flowchart LR
    remains grounded. Press the camera **Reset** button once; if it has no Reset
    button, briefly remove and restore camera power.
 4. **Upload the camera sketch.** In Arduino IDE, open
-   `firmware/larp-esp32-cam/larp_esp32_cam.ino`. Change the selected board to
+   `firmware/larp-esp32-cam/larp-esp32-cam.ino`. Change the selected board to
    **AI Thinker ESP32-CAM**, but keep the **same UNO R4 USB serial port**
    selected. Set upload speed to **115200** and close Serial Monitor. Confirm
    `CAMERA_ID`, `WIFI_SSID`, and `WIFI_PASSWORD`, then select **Upload**.

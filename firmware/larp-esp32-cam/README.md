@@ -1,7 +1,7 @@
 # LARP ESP32-CAM firmware
 
 This package provides the video node for each LARP reconnaissance scout. Flash
-`larp_esp32_cam.ino` to an Inland ESP32-CAM-compatible board, setting
+`larp-esp32-cam.ino` to an Inland ESP32-CAM-compatible board, setting
 `CAMERA_ID` to `A` or `B` before each upload. It joins `3TSahur-Swarm` and
 serves an MJPEG stream at `http://larp-a-cam.local/stream` or
 `http://larp-b-cam.local/stream`.

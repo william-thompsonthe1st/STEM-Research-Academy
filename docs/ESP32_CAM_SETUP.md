@@ -20,7 +20,7 @@ browser.
 ## Camera board pin map used by the firmware
 
 The following assignments are already encoded in
-`firmware/larp-esp32-cam/larp_esp32_cam.ino`.
+`firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 
 | Camera signal | ESP32-CAM GPIO |
 | --- | ---: |
@@ -51,7 +51,7 @@ the resulting MJPEG stream over Wi-Fi.
 3. Select the board profile that matches the printed module. For an
    AI Thinker-compatible camera, select **AI Thinker ESP32-CAM** and the
    correct serial port. Use a low upload speed if uploads are unreliable.
-4. Open `firmware/larp-esp32-cam/larp_esp32_cam.ino`.
+4. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 5. For Scout A, set `CAMERA_ID` to `'A'`; for Scout B, set it to `'B'`.
    Set `WIFI_SSID` and `WIFI_PASSWORD` to exactly match the Pi hotspot.
 6. Upload. If the adapter cannot begin upload, hold the board's reset button
@@ -191,7 +191,7 @@ camera power. GPIO 0 must be low at reset for the ROM upload mode.
 
 #### Step 4: upload the camera firmware
 
-1. Open `firmware/larp-esp32-cam/larp_esp32_cam.ino`.
+1. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 2. Set `CAMERA_ID`, `WIFI_SSID`, and `WIFI_PASSWORD`.
 3. Change the IDE board to **AI Thinker ESP32-CAM**.
 4. Keep the **same UNO R4 USB serial port** selected.

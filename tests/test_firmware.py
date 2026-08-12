@@ -3,7 +3,7 @@ import unittest
 
 
 FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-scout" / "larp_scout_controller.ino"
-CAMERA_FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-esp32-cam" / "larp_esp32_cam.ino"
+CAMERA_FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-esp32-cam" / "larp-esp32-cam.ino"
 INSTALLER = pathlib.Path(__file__).parents[1] / "installer" / "install.sh"
 
 
