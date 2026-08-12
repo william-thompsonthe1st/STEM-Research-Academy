@@ -41,6 +41,33 @@ flowchart LR
     LB --- CB
 ```
 
+## Setup roadmap
+
+Follow this order from an empty workbench to a safe first drive. Each stage
+has a clear stop point, so a problem stays isolated to one subsystem.
+
+```mermaid
+flowchart TB
+    S1["1. Gather and inspect<br/>Pi · motor hardware · two ECHOs · two Inland ESP32-CAMs"] --> S2["2. Build the Pi hub<br/>Raspberry Pi OS → installer → 3TSahur-Swarm hotspot"]
+    S2 --> S3["3. Flash Scout A<br/>ECHO controller A + ESP32-CAM A"]
+    S3 --> S4["4. Flash Scout B<br/>ECHO controller B + ESP32-CAM B"]
+    S4 --> S5["5. Verify without motion<br/>dashboard · C270 · camera feeds · heartbeats"]
+    S5 --> S6["6. Safety test raised wheels<br/>direction · Space · Esc · disconnect stop"]
+    S6 --> S7["7. Low-speed ground test<br/>one active camera stream"]
+    S7 --> S8["Optional last<br/>CSI calibration · YOLO · gamepad"]
+```
+
+| Stage | You need | Success looks like | Detailed instructions |
+| --- | --- | --- | --- |
+| 1. Hub | Pi 4, microSD, C270, motor drivers, safe external motor power | Everything is wired with motor power disconnected | [Wiring reference](docs/WIRING.md) |
+| 2. Pi software | Internet for initial Pi setup | Pi creates `3TSahur-Swarm`; dashboard opens at `http://10.42.0.1` | [Pi installation](#install-on-the-raspberry-pi) |
+| 3–4. Scouts | Each ECHO, each Inland ESP32-CAM, and a serial adapter | A and B use matching IDs and join the hotspot | [Flash firmware](#flash-the-larp-firmware) |
+| 5. Network + video | Phone, tablet, or Pi display on the hotspot | C270 and the selected LARP stream display | [ESP32-CAM verification](docs/ESP32_CAM_SETUP.md#verify-the-feed) |
+| 6–7. Motion | Wheels off the floor first | Controls, emergency stop, and watchdog stop work | [Safety checklist](#safety-checklist) |
+
+> **Safety gate:** Do not connect motor power or attempt a floor drive until
+> the dashboard, cameras, emergency stop, and raised-wheel direction tests all pass.
+
 ## Reproduction methodology
 
 This project is designed as a local-first system: the Pi hosts the Wi-Fi
