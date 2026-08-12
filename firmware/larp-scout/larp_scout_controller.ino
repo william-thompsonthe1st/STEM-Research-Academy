@@ -37,7 +37,8 @@ constexpr uint8_t LEFT_MOTOR_ID = 1;
 constexpr uint8_t RIGHT_MOTOR_ID = 6;
 constexpr uint8_t STARTUP_SPEED_LIMIT = 35;
 constexpr unsigned long COMMAND_TIMEOUT_MS = 500;
-constexpr unsigned long WIFI_RETRY_MS = 5000;
+constexpr unsigned long WIFI_RETRY_A_MS = 1800;
+constexpr unsigned long WIFI_RETRY_B_MS = 2200;
 
 constexpr uint16_t PI_CSI_UDP_PORT = 5005;
 constexpr uint16_t PI_HEARTBEAT_UDP_PORT = 5006;
@@ -52,6 +53,7 @@ static_assert(ROBOT_ID == 'A' || ROBOT_ID == 'B', "ROBOT_ID must be A or B");
 const char *robotName() { return ROBOT_ID == 'A' ? "LARP Scout A" : "LARP Scout B"; }
 const char *robotHost() { return ROBOT_ID == 'A' ? "larp-a" : "larp-b"; }
 const char *cameraHost() { return ROBOT_ID == 'A' ? "larp-a-cam.local" : "larp-b-cam.local"; }
+unsigned long wifiRetryMs() { return ROBOT_ID == 'A' ? WIFI_RETRY_A_MS : WIFI_RETRY_B_MS; }
 
 // EchoLib's documented differential-drive class accepts turn (X) and
 // forward/reverse (Y) values. Motors 1 and 6 match the Zippy example.
@@ -389,7 +391,7 @@ void maintainWiFi() {
   }
 
   stopMotors();
-  if (millis() - lastWiFiAttemptAt < WIFI_RETRY_MS) return;
+  if (millis() - lastWiFiAttemptAt < wifiRetryMs()) return;
   lastWiFiAttemptAt = millis();
   // Do not wait here. A blocking startup loop previously left a scout unable
   // to recover when it powered on before the 3TSahur hotspot was ready.
