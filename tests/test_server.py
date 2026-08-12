@@ -25,6 +25,14 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.get_json()["ok"])
 
+    def test_status_exposes_optional_feature_health_without_blocking_control(self):
+        response = self.client.get("/api/status")
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertIn(data["camera_profile"], {"control", "balanced", "detail"})
+        self.assertIn("vision", data)
+        self.assertIn("3tsahur", data["vision"])
+
     def test_drive_command(self):
         response = self.client.post(
             "/api/drive",
@@ -87,6 +95,31 @@ class ServerTests(unittest.TestCase):
     def test_unknown_vision_source_is_rejected_without_affecting_drive(self):
         response = self.client.get("/api/vision/unknown")
         self.assertEqual(response.status_code, 404)
+        self.assertEqual(drive.last_command["forward"], 0)
+
+    @patch("robot_server.app.camera.configure")
+    def test_camera_profile_isolated_from_drive(self, configure):
+        response = self.client.post("/api/camera/profile", json={"profile": "control"})
+        self.assertEqual(response.status_code, 200)
+        configure.assert_called_once_with(320, 240, 6)
+        drive_response = self.client.post("/api/drive", json=self.current_command(forward=1))
+        self.assertEqual(drive_response.status_code, 200)
+        self.assertEqual(drive.last_command["forward"], 1)
+
+    def test_invalid_camera_profile_is_rejected(self):
+        self.assertEqual(self.client.post("/api/camera/profile", json={"profile": "unsafe"}).status_code, 400)
+
+    def test_timeline_is_bounded_and_does_not_require_hardware(self):
+        created = self.client.post("/api/events", json={"kind": "test", "source": "test", "message": "timeline ok"})
+        self.assertEqual(created.status_code, 200)
+        listed = self.client.get("/api/events")
+        self.assertEqual(listed.status_code, 200)
+        self.assertTrue(any(event["message"] == "timeline ok" for event in listed.get_json()["events"]))
+
+    @patch("robot_server.app._snapshot_bytes", return_value=None)
+    def test_unavailable_snapshot_does_not_affect_drive(self, snapshot):
+        response = self.client.post("/api/snapshots/3tsahur")
+        self.assertEqual(response.status_code, 503)
         self.assertEqual(drive.last_command["forward"], 0)
 
     @patch("robot_server.app.scout_registry.record", return_value={
