@@ -32,7 +32,7 @@
     <section id="panel-3tsahur" class="robot-panel active" role="tabpanel" aria-labelledby="tab-3tsahur" data-tab-panel="3tsahur">
       <div class="video-stage primary-video-stage">
         <img class="video" data-stream-for="3tsahur" data-stream-src="{{ url_for('camera_feed') }}" alt="Live Logitech C270 camera feed from 3TSahur">
-        <canvas class="vision-overlay" data-vision-overlay="3tsahur" aria-hidden="true"></canvas><button class="vision-toggle" type="button" data-vision-toggle="3tsahur" aria-pressed="false">Vision off · C</button><output class="vision-status" data-vision-status="3tsahur">Vision ready when enabled</output>
+        <canvas class="vision-overlay" data-vision-overlay="3tsahur" aria-hidden="true"></canvas><button class="vision-toggle" type="button" data-vision-toggle="3tsahur" aria-pressed="false">Vision off · C</button><button class="snapshot-button" type="button" data-snapshot="3tsahur">Snapshot</button><output class="vision-status" data-vision-status="3tsahur">Vision ready when enabled</output>
         <div class="camera-message" id="camera-message">Starting Logitech C270 camera...</div>
         <div class="video-shade"></div>
         <div class="video-label"><span class="live-dot"></span>3TSahur · Logitech C270</div>
@@ -72,7 +72,7 @@
     <section id="panel-larp-a" class="robot-panel" role="tabpanel" aria-labelledby="tab-larp-a" data-tab-panel="larp-a" hidden>
       <div class="video-stage scout-video-stage cyan-stage">
         <img class="scout-video" data-stream-for="larp-a" data-stream-src="{{ larp_a_stream }}" alt="Live Inland ESP32-CAM feed from LARP Scout A">
-        <canvas class="vision-overlay" data-vision-overlay="larp-a" aria-hidden="true"></canvas><button class="vision-toggle" type="button" data-vision-toggle="larp-a" aria-pressed="false">Vision off · C</button><output class="vision-status" data-vision-status="larp-a">Vision ready when enabled</output>
+        <canvas class="vision-overlay" data-vision-overlay="larp-a" aria-hidden="true"></canvas><button class="vision-toggle" type="button" data-vision-toggle="larp-a" aria-pressed="false">Vision off · C</button><button class="snapshot-button" type="button" data-snapshot="larp-a">Snapshot</button><output class="vision-status" data-vision-status="larp-a">Vision ready when enabled</output>
         <div class="grid-backdrop"></div>
         <div class="video-shade"></div>
         <div class="video-label"><span class="live-dot"></span>LARP Scout A · Inland ESP32-CAM</div>
@@ -100,6 +100,7 @@
           </div>
           <div class="csi-meter" role="progressbar" aria-label="Scout A channel-state disturbance level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="scout-a-csi-meter"></i></div>
           <p>Signal disturbance only - verify any possible presence with the camera.</p>
+          <button class="calibrate" type="button" data-calibrate="a">Calibrate CSI (20s)</button><output id="scout-a-calibration">Calibration idle</output>
         </section>
         <div class="scout-controls" data-scout="a">
           <label>Speed <output>35%</output><input type="range" min="10" max="70" value="35"></label>
@@ -118,7 +119,7 @@
     <section id="panel-larp-b" class="robot-panel" role="tabpanel" aria-labelledby="tab-larp-b" data-tab-panel="larp-b" hidden>
       <div class="video-stage scout-video-stage orange-stage">
         <img class="scout-video" data-stream-for="larp-b" data-stream-src="{{ larp_b_stream }}" alt="Live Inland ESP32-CAM feed from LARP Scout B">
-        <canvas class="vision-overlay" data-vision-overlay="larp-b" aria-hidden="true"></canvas><button class="vision-toggle" type="button" data-vision-toggle="larp-b" aria-pressed="false">Vision off · C</button><output class="vision-status" data-vision-status="larp-b">Vision ready when enabled</output>
+        <canvas class="vision-overlay" data-vision-overlay="larp-b" aria-hidden="true"></canvas><button class="vision-toggle" type="button" data-vision-toggle="larp-b" aria-pressed="false">Vision off · C</button><button class="snapshot-button" type="button" data-snapshot="larp-b">Snapshot</button><output class="vision-status" data-vision-status="larp-b">Vision ready when enabled</output>
         <div class="grid-backdrop"></div>
         <div class="video-shade"></div>
         <div class="video-label"><span class="live-dot"></span>LARP Scout B · Inland ESP32-CAM</div>
@@ -146,6 +147,7 @@
           </div>
           <div class="csi-meter" role="progressbar" aria-label="Scout B channel-state disturbance level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="scout-b-csi-meter"></i></div>
           <p>Signal disturbance only - verify any possible presence with the camera.</p>
+          <button class="calibrate" type="button" data-calibrate="b">Calibrate CSI (20s)</button><output id="scout-b-calibration">Calibration idle</output>
         </section>
         <div class="scout-controls" data-scout="b">
           <label>Speed <output>35%</output><input type="range" min="10" max="70" value="35"></label>
@@ -161,6 +163,7 @@
       </section>
     </section>
   </main>
+  <aside class="mission-tools"><label><input id="deadman" type="checkbox"> Dead-man mode (hold Shift / gamepad A)</label><strong>Mission timeline</strong><ol id="event-list"></ol></aside>
   <button class="kill-all" id="kill-all" type="button">Stop all robots · Esc</button>
   <div class="toast" id="toast" role="status">Controls disconnected — motors stopped</div>
   <script src="{{ url_for('static', filename='dashboard.js', v=4) }}"></script>
