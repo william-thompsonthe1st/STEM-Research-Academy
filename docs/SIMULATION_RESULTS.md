@@ -3,12 +3,12 @@
 Date: 2026-08-12
 
 The integration base and the 3TSahur/LARP updates were compiled with Python.
-All 57 hardware-independent tests passed in an isolated desktop virtual
+All 58 hardware-independent tests passed in an isolated desktop virtual
 environment with the repository's Flask dependency installed.
 
 | Group | Checks | Result |
 | --- | ---: | --- |
-| `test_dashboard_ui.py` | per-robot tabs, lazy MJPEG streams, CSI, vision controls, mission tools, profiles, health panel, and non-overlap layout | pass |
+| `test_dashboard_ui.py` | per-robot tabs, lazy MJPEG streams, CSI, vision controls, mission tools, profiles, health panel, non-overlap layout, and static lightweight UI-refresh guard | pass |
 | `test_motor.py` | mecanum mixing, normalization, reversal dead-time, and confirmed GPIO/PWM mapping | pass |
 | `test_camera.py` | C270 V4L2 discovery ordering | pass |
 | `test_firmware.py` | LARP reconnect behavior, CSI status fields, capped camera stream rate, firmware settings, and installer invariants | pass |
@@ -48,11 +48,18 @@ successfully and the 3TSahur motor state remained current. This exercises the
 same dashboard API routes that the three tabs use, with scout HTTP calls mocked
 to remove physical radio variation.
 
-After the control-priority update, 100 repeated composite cycles, each
-containing all three of those commands, averaged **0.466 ms** per cycle, with
-a **0.697 ms** 95th percentile and **1.042 ms** maximum. The compatibility
-test also asserts a 50 ms local ceiling across repeated Pi/LARP requests, so a
-new local request queue cannot silently reintroduce multi-second delays.
+After the UI refresh, 100 repeated composite cycles, each containing one
+current 3TSahur command and one command for each LARP, averaged **0.406 ms**
+per cycle, with a **0.571 ms** 95th percentile and **2.490 ms** maximum. The
+compatibility test also asserts a 50 ms local ceiling across repeated Pi/LARP
+requests, so a new local request queue cannot silently reintroduce multi-second
+delays.
+
+The UI refresh changes only HTML/CSS presentation and one regression test. It
+does not alter the dashboard JavaScript, HTTP endpoints, control timer rates,
+camera-stream behavior, motor mixer, watchdog, firmware, or network settings.
+It adds no dependencies or background tasks and removes the previous CSS camera
+filter and `backdrop-filter` panel effect.
 
 This confirms software compatibility and the absence of a local API backlog;
 it does **not** measure the Pi's hotspot airtime, 2.4 GHz interference, ESP32

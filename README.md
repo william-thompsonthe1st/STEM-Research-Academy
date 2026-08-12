@@ -148,6 +148,34 @@ Only the selected tab keeps its MJPEG feed open. This preserves hotspot
 bandwidth for low-latency robot commands instead of competing with three video
 streams at once.
 
+### Current dashboard visual system
+
+The UI uses a static control-room visual system: an editorial status header,
+compact safety pills, a three-robot navigation dock, and layered control cards.
+It is a presentation-only refresh: the tabs, controls, keyboard bindings,
+single-stream policy, safety stops, optional vision, CSI, mission tools, and
+actuator staging all retain their existing behavior.
+
+```text
++-----------------------------------------------------------------------+
+|  3TSAHUR-SWARM LOCAL COMMAND CENTER              [ LOCAL CONTROL ]   |
+|  Reconnaissance dashboard     [ one camera ] [ watchdog protected ]  |
++-----------------------------------------------------------------------+
+| [01 3TSahur]       [02 LARP Scout A]       [03 LARP Scout B]         |
++--------------------------------------+--------------------------------+
+| Selected live camera                 | Selected robot controls        |
+| vision + snapshot overlay            | status, speed, drive, stop     |
+|                                      | CSI / gimbal / ramp as needed  |
++--------------------------------------+--------------------------------+
+| STOP ALL (Esc)       Mission timeline, health, dead-man controls      |
++-----------------------------------------------------------------------+
+```
+
+The visual layer adds no JavaScript, packages, API calls, polling, video
+streams, model work, or motor-control code. It also removes the former
+camera CSS filter and mission-panel backdrop filter to avoid extra compositor
+work on the Raspberry Pi.
+
 The dashboard works with mouse/touch controls and the following keyboard shortcuts when the page is focused:
 
 | Robot | Keys | Action |
@@ -375,7 +403,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **57 tests successfully**: dashboard/UI,
+The recorded desktop simulation ran **58 tests successfully**: dashboard/UI,
 mecanum mixing, camera discovery/profile isolation, firmware invariants,
 scout registry, Flask control APIs, mission events, snapshots, and optional
 vision failure handling. Hardware validation is still required for motor
