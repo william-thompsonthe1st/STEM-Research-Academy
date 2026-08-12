@@ -20,6 +20,7 @@
 | Scout control | Send direction commands to LARP Scout A and B independently over Wi-Fi. |
 | Safety | Stop stale commands automatically; includes sequence checks, watchdogs, and a kill-all control. |
 | Deployment | Configure a Pi hotspot, dashboard service, local touchscreen/display kiosk, and mDNS address. |
+| Optional AI vision | Prepare pretrained YOLO11 Nano person detection for the selected C270 or LARP camera feed. |
 
 ## System overview
 
@@ -141,6 +142,49 @@ sudo systemctl restart stem-robot-dashboard
 sudo systemctl status stem-robot-dashboard
 ```
 
+## Optional pretrained AI vision
+
+The base dashboard does **not** yet run a model automatically. An optional,
+isolated setup is provided for the planned vision service: **Ultralytics
+YOLO11 Nano**, using its pretrained COCO weights and the embedded-friendly
+**NCNN** runtime. It requires no dataset, labeling, or training.
+
+For the Pi 4, use YOLO only on the currently selected dashboard camera at
+`320px` and 2–5 inference frames per second. Start with COCO class `person`
+only. Do not run three full-resolution inference loops at once; that can
+compete with video and robot-control traffic. The detection output is an
+operator aid, not a safety or identity decision.
+
+### Vision requirements and install
+
+- Current 64-bit Raspberry Pi OS; complete the base installation first.
+- Stable power, at least 3 GB free storage, and temporary internet for the
+  one-time package/model download and conversion.
+- A connected C270 or a verified LARP ESP32-CAM MJPEG stream.
+- Install as the normal Pi user in a separate environment—never as `root` and
+  never into the dashboard's system Python packages.
+
+```bash
+cd ~/STEMResearchAcademy
+python3 -m venv --system-site-packages .vision-venv
+source .vision-venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install "ultralytics>=8.3,<9" ncnn
+
+# Downloads pretrained COCO weights once, then exports the Pi-friendly runtime.
+python - <<'PY'
+from ultralytics import YOLO
+YOLO("yolo11n.pt").export(format="ncnn", imgsz=320)
+PY
+```
+
+The complete [pretrained vision setup guide](docs/VISION_SETUP.md) includes
+the C270 visual test, LARP feed prerequisites, safe performance settings,
+offline-use notes, and a hardware validation checklist. Upstream references:
+[YOLO11 models](https://docs.ultralytics.com/models/yolo11/),
+[NCNN export](https://docs.ultralytics.com/integrations/ncnn/), and
+[Raspberry Pi deployment](https://docs.ultralytics.com/guides/raspberry-pi/).
+
 ## Flash the LARP firmware
 
 | Target | Sketch | Set before upload |
@@ -210,6 +254,7 @@ Then browse to `http://127.0.0.1:8080`. On a non-Pi machine, GPIO behavior is si
 - [Setup guide](docs/SETUP.md) — end-to-end Pi, network, firmware, and first-drive procedure.
 - [Wiring reference](docs/WIRING.md) — exact 3TSahur motor GPIO mapping and ESP32-CAM notes.
 - [Inland ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — upload wiring, pin map, stream verification, and troubleshooting.
+- [Pretrained vision setup](docs/VISION_SETUP.md) — YOLO11 Nano + NCNN prerequisites, install, model export, visual test, and safe Pi operating guidance.
 - [Simulation results](docs/SIMULATION_RESULTS.md) — commands run, passed tests, and test limitations.
 - [Changes from original](docs/CHANGES_FROM_ORIGINAL.md) — what came from the integration base and what changed.
 - [Installer guide](installer/README.md) and [server guide](robot_server/README.md) — package-specific operation details.
