@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="server-time-ms" content="{{ server_time_ms }}">
   <title>3TSahur Swarm Control</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=5) }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v=6) }}">
 </head>
 <body>
   <main class="dashboard">
@@ -63,6 +63,24 @@
           <p class="hint">WASD drive · Q/E rotate · Space stops 3TSahur</p>
           <button class="stop-button" id="stop" type="button">Stop 3TSahur · all 4 motors</button>
         </div>
+        <section class="actuator-card" aria-label="3TSahur auxiliary camera and ramp controls">
+          <header>
+            <div><p class="eyebrow">Auxiliary systems</p><strong>Gimbal + ramp</strong></div>
+            <output id="actuator-status">Awaiting servo configuration</output>
+          </header>
+          <div class="actuator-actions">
+            <button id="gimbal-mode" type="button" aria-pressed="false">Gimbal mode · G</button>
+            <button id="ramp-toggle" type="button">Raise ramp · R</button>
+          </div>
+          <div class="gimbal-pad" aria-label="Logitech C270 gimbal controls">
+            <button type="button" data-gimbal="pan-left">← Pan</button>
+            <button type="button" data-gimbal="tilt-up">Tilt ↑</button>
+            <button type="button" data-gimbal="tilt-down">Tilt ↓</button>
+            <button type="button" data-gimbal="pan-right">Pan →</button>
+          </div>
+          <output id="gimbal-readout">Pan 0° · Tilt 0°</output>
+          <p>Press G, then use arrow keys to aim the camera. Press R to toggle the ramp. These controls are staged only until the servo driver is configured.</p>
+        </section>
         <footer class="telemetry">
           <span id="direction">Standing by</span>
           <span id="host">10.42.0.1:8080</span>
@@ -167,6 +185,6 @@
   <aside class="mission-tools" aria-label="Mission tools"><label><input id="deadman" type="checkbox"> Dead-man mode <small>Hold Shift / gamepad A</small></label><strong>System health</strong><dl id="health-panel"><dt>Pi control</dt><dd>Checking…</dd><dt>Camera</dt><dd>Checking…</dd><dt>Network</dt><dd>Checking…</dd></dl><strong>Mission timeline</strong><ol id="event-list" aria-live="polite"></ol></aside>
   <button class="kill-all" id="kill-all" type="button">Stop all robots · Esc</button>
   <div class="toast" id="toast" role="status">Controls disconnected — motors stopped</div>
-  <script src="{{ url_for('static', filename='dashboard.js', v=5) }}"></script>
+  <script src="{{ url_for('static', filename='dashboard.js', v=6) }}"></script>
 </body>
 </html>
