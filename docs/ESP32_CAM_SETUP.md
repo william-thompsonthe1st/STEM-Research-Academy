@@ -76,6 +76,67 @@ Never connect UNO D1/TX directly to ESP U0R/GPIO 3. A resistor divider translate
 only one direction and is not the supported solution here. The level shifter
 must translate **both** TX/RX paths. Never power the camera from UNO 3.3V.
 
+#### Pin roles at a glance
+
+| Board | Pin | Role during flashing | Connect to |
+| --- | --- | --- | --- |
+| UNO R4 | D1 / TX | Sends computer upload data at 5 V logic | Shifter 5 V-side input, channel 1 |
+| Level shifter | Channel 1 | Converts UNO transmit from 5 V to 3.3 V | ESP U0R / GPIO 3 / RX |
+| ESP32-CAM | U0T / GPIO 1 / TX | Sends bootloader replies at 3.3 V logic | Shifter 3.3 V-side input, channel 2 |
+| Level shifter | Channel 2 | Converts ESP transmit from 3.3 V to 5 V | UNO D0 / RX |
+| ESP32-CAM | GPIO 0 | Selects ROM upload mode when low during reset | GND temporarily; remove after upload |
+| Separate supply | +5 V, at least 1 A | Powers the camera | ESP32-CAM 5V only |
+| Every device | GND | Shared voltage reference | One common ground |
+
+```mermaid
+flowchart LR
+    subgraph HOST["Computer and 5 V UNO side"]
+        PC["Arduino IDE"] -->|"USB"| UNO["UNO R4"]
+        UTX["D1 / TX"]
+        URX["D0 / RX"]
+        U5["5V"]
+        U33["3.3V"]
+        UG["GND"]
+        UNO --- UTX
+        UNO --- URX
+        UNO --- U5
+        UNO --- U33
+        UNO --- UG
+    end
+
+    subgraph SHIFT["Two-channel UART level shifter"]
+        DOWN["Channel 1<br/>5 V to 3.3 V"]
+        UP["Channel 2<br/>3.3 V to 5 V"]
+        HV["HV power"]
+        LV["LV power"]
+        SG["GND"]
+    end
+
+    subgraph CAMERA["3.3 V ESP32-CAM UART side"]
+        ERX["U0R / GPIO 3 / RX"]
+        ETX["U0T / GPIO 1 / TX"]
+        BOOT["GPIO 0<br/>jumper to GND for upload"]
+        PWR["5V power input"]
+        EG["GND"]
+    end
+
+    UTX --> DOWN --> ERX
+    ETX --> UP --> URX
+    U5 --> HV
+    U33 --> LV
+    SUPPLY["Separate regulated 5 V<br/>at least 1 A"] -->|"positive"| PWR
+    PG["Supply GND"] --- SUPPLY
+    COMMON["COMMON GROUND"] --- UG
+    COMMON --- SG
+    COMMON --- EG
+    COMMON --- PG
+    BOOT ---|"temporary jumper"| COMMON
+    NOUART["NEVER connect<br/>UNO D1 directly to ESP U0R"] -. "unsafe 5 V" .-> ERX
+    NORAIL["NEVER join<br/>supply + to UNO 5V"] -. "positive rails stay separate" .-> UNO
+    classDef danger fill:#7f1d1d,color:#fff,stroke:#ef4444,stroke-width:2px;
+    class NOUART,NORAIL danger;
+```
+
 #### Step 1: turn the UNO into a serial relay
 
 Keep all wires off UNO D0/D1. Connect the UNO to the computer. In Arduino IDE,
@@ -147,6 +208,34 @@ RX are crossed through the correct level-shifter directions.
 2. Remove the ESP GPIO 0-to-GND jumper.
 3. Restore camera power and press camera Reset if necessary.
 4. Open Serial Monitor at **115200** and look for the camera hostname/IP.
+
+#### Complete upload sequence
+
+```mermaid
+sequenceDiagram
+    participant IDE as Arduino IDE
+    participant UNO as UNO R4
+    participant SHIFT as Level shifter
+    participant CAM as ESP32-CAM
+
+    Note over UNO,CAM: D0/D1 disconnected; camera power off
+    IDE->>UNO: Select UNO R4 + UNO port
+    IDE->>UNO: Upload Serial-to-Serial1 bridge
+    Note over UNO,CAM: Disconnect USB and camera power; wire both UART channels and common ground
+    Note over CAM: Connect GPIO 0 to GND
+    IDE->>UNO: Reconnect UNO USB
+    Note over CAM: Apply separate 5 V power and reset
+    Note over CAM: ROM bootloader is now waiting
+    IDE->>IDE: Select AI Thinker ESP32-CAM<br/>keep UNO port; close Serial Monitor; 115200
+    IDE->>UNO: Send camera firmware
+    UNO->>SHIFT: D1/TX at 5 V
+    SHIFT->>CAM: U0R/RX at safe 3.3 V
+    CAM->>SHIFT: U0T/TX replies at 3.3 V
+    SHIFT->>UNO: D0/RX at safe 5 V
+    Note over CAM: Upload succeeds; remove camera power
+    Note over CAM: Remove GPIO 0 jumper, restore power, normal boot
+    CAM-->>IDE: Boot/network log through bridge at 115200
+```
 
 The UNO relay cannot automatically control camera Reset/GPIO 0. If upload still
 fails, use shorter wires, confirm the shifter supports UART at 115200, or use a

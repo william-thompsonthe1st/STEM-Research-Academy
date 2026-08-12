@@ -462,6 +462,34 @@ connect directly because its serial pins use 5 V logic and the ESP32 uses
 > camera from the UNO 3.3 V pin. Disconnect USB and camera power before
 > changing wires.**
 
+```mermaid
+flowchart LR
+    PC["Computer / Arduino IDE"] -->|"USB data + UNO power"| UNO["UNO R4<br/>5 V UART"]
+    UNO -->|"D1 / TX"| CH1["Level shifter channel 1<br/>5 V to 3.3 V"]
+    CH1 -->|"safe 3.3 V"| RX["ESP32-CAM<br/>U0R / GPIO 3 / RX"]
+    TX["ESP32-CAM<br/>U0T / GPIO 1 / TX"] -->|"3.3 V"| CH2["Level shifter channel 2<br/>3.3 V to 5 V"]
+    CH2 -->|"safe 5 V"| UNO
+    PSU["Separate regulated supply<br/>5 V, at least 1 A"] -->|"positive only"| CAM5["ESP32-CAM 5V"]
+    GND["Common ground"] ---|"UNO GND"| UNO
+    GND --- SHG["Shifter GND"]
+    GND --- ESPG["ESP32-CAM GND"]
+    GND --- PSUG["Supply GND"]
+    BOOT["GPIO 0 to GND<br/>upload only"] --- GND
+    BAD1["NEVER: UNO TX directly to ESP RX"] -. "unsafe 5 V" .-> RX
+    BAD2["NEVER: separate supply + to UNO 5V"] -. "do not join positive rails" .-> UNO
+    classDef danger fill:#7f1d1d,color:#fff,stroke:#ef4444,stroke-width:2px;
+    class BAD1,BAD2 danger;
+```
+
+```mermaid
+flowchart LR
+    A["1. D0/D1 disconnected<br/>upload bridge to UNO"] --> B["2. Power off<br/>wire shifter, supply, ground"]
+    B --> C["3. GPIO 0 low<br/>reset camera into bootloader"]
+    C --> D["4. Select AI Thinker<br/>keep UNO port, upload at 115200"]
+    D --> E["5. Power off<br/>remove GPIO 0 jumper"]
+    E --> F["Normal boot<br/>verify at 115200"]
+```
+
 1. **Prepare the UNO.** Leave D0 and D1 disconnected. Connect only the UNO USB
    cable. In Arduino IDE, select your exact UNO R4 model and its serial port,
    then upload this bridge sketch:
