@@ -138,6 +138,11 @@ class CameraStream:
     def available(self) -> bool:
         return self._frame is not None and self.error is None
 
+    def latest_jpeg(self) -> bytes | None:
+        """Return the newest captured frame without opening a second webcam."""
+        with self._condition:
+            return self._frame
+
     def close(self) -> None:
         self._running = False
         with self._condition:
