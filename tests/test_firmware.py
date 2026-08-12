@@ -46,12 +46,25 @@ class LarpFirmwareTests(unittest.TestCase):
             self.assertIn(f'"{endpoint}"', self.source)
         self.assertNotIn("192, 168, 4", self.source)
 
+    def test_larp_devices_retry_the_pi_hotspot_without_blocking_startup(self):
+        self.assertIn("void beginWiFi()", self.source)
+        self.assertIn("void maintainWiFi()", self.source)
+        self.assertIn("WiFi.disconnect(false, false)", self.source)
+        self.assertIn("if (serverStarted) server.handleClient()", self.source)
+        self.assertNotIn("while (WiFi.status() != WL_CONNECTED)", self.source)
+        self.assertIn("void beginWiFi()", self.camera_source)
+        self.assertIn("void maintainWiFi()", self.camera_source)
+        self.assertIn("WiFi.disconnect(false, false)", self.camera_source)
+        self.assertNotIn("while (WiFi.status() != WL_CONNECTED)", self.camera_source)
+
     def test_larp_camera_firmware_exposes_a_mjpeg_stream(self):
         self.assertIn("CAMERA_ID", self.camera_source)
         self.assertIn('"3TSahur-Swarm"', self.camera_source)
         self.assertIn("esp_camera_init", self.camera_source)
         self.assertIn('"/stream"', self.camera_source)
         self.assertIn("larp-a-cam", self.camera_source)
+        self.assertIn("STREAM_FRAME_INTERVAL_MS = 100", self.camera_source)
+        self.assertIn("vTaskDelay(pdMS_TO_TICKS", self.camera_source)
 
     def test_installer_schedules_reboot_outside_pipe_process(self):
         self.assertIn("systemd-run", self.installer)

@@ -1,0 +1,47 @@
+import unittest
+from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TEMPLATE = (PROJECT_ROOT / "robot_server" / "templates" / "index.html").read_text(encoding="utf-8")
+STYLES = (PROJECT_ROOT / "robot_server" / "static" / "dashboard.css").read_text(encoding="utf-8")
+SCRIPT = (PROJECT_ROOT / "robot_server" / "static" / "dashboard.js").read_text(encoding="utf-8")
+
+
+class DashboardTabTests(unittest.TestCase):
+    def test_all_three_robot_tabs_have_separate_panels(self):
+        for robot in ("3tsahur", "larp-a", "larp-b"):
+            self.assertIn(f'data-tab="{robot}"', TEMPLATE)
+            self.assertIn(f'data-tab-panel="{robot}"', TEMPLATE)
+        self.assertEqual(TEMPLATE.count('role="tab"'), 3)
+        self.assertEqual(TEMPLATE.count('role="tabpanel"'), 3)
+
+    def test_each_tab_has_its_own_video_and_controls(self):
+        self.assertIn('alt="Live Logitech C270 camera feed from 3TSahur"', TEMPLATE)
+        self.assertIn('alt="Live Inland ESP32-CAM feed from LARP Scout A"', TEMPLATE)
+        self.assertIn('alt="Live Inland ESP32-CAM feed from LARP Scout B"', TEMPLATE)
+        self.assertIn('aria-label="3TSahur drive controls"', TEMPLATE)
+        self.assertIn('aria-label="LARP Scout A drive controls"', TEMPLATE)
+        self.assertIn('aria-label="LARP Scout B drive controls"', TEMPLATE)
+
+    def test_only_the_selected_tab_keeps_a_camera_stream_open(self):
+        self.assertEqual(TEMPLATE.count("data-stream-for="), 3)
+        self.assertEqual(TEMPLATE.count("data-stream-src="), 3)
+        self.assertIn("function activateOnlySelectedCamera", SCRIPT)
+        self.assertIn("feed.removeAttribute('src')", SCRIPT)
+        self.assertIn("activateOnlySelectedCamera(id);", SCRIPT)
+
+    def test_tab_switching_is_keyboard_accessible_and_stops_motion(self):
+        self.assertIn('function selectRobotTab', SCRIPT)
+        self.assertIn("if (changingTabs) killAll();", SCRIPT)
+        self.assertIn("event.key === 'ArrowRight'", SCRIPT)
+        self.assertIn("event.key === 'Home'", SCRIPT)
+
+    def test_video_and_controls_use_separate_grid_columns(self):
+        self.assertIn('grid-template-columns: minmax(0, 1.55fr) minmax(340px, .9fr);', STYLES)
+        self.assertNotIn('.drive-card { position: absolute', STYLES)
+        self.assertNotIn('.scout-controls { position: absolute', STYLES)
+
+
+if __name__ == "__main__":
+    unittest.main()

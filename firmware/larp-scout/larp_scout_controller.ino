@@ -66,6 +66,9 @@ unsigned long lastHeartbeatAt = 0;
 unsigned long lastCsiReportAt = 0;
 bool motorsStopped = true;
 bool mdnsStarted = false;
+bool wifiWasConnected = false;
+bool serverStarted = false;
+bool csiStarted = false;
 bool heartbeatAnnounced = false;
 volatile bool piRegistered = false;
 volatile unsigned long lastPiRegistrationAt = 0;
@@ -335,23 +338,64 @@ void configureServer() {
   server.begin();
 }
 
-void connectWiFi() {
+void beginWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
   WiFi.setAutoReconnect(true);
   WiFi.setSleep(false);
   WiFi.setHostname(robotHost());
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  lastWiFiAttemptAt = millis();
 
-  Serial.printf("%s connecting to %s", robotName(), WIFI_SSID);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(250);
-    Serial.print('.');
+  Serial.printf("%s joining %s in station mode...\n", robotName(), WIFI_SSID);
+}
+
+void startMdns() {
+  mdnsStarted = MDNS.begin(robotHost());
+  if (mdnsStarted) {
+    MDNS.addService("http", "tcp", 80);
+    Serial.printf("mDNS ready: http://%s.local/\n", robotHost());
+  } else {
+    Serial.println("mDNS failed; Pi registration and UDP heartbeats still use the DHCP address.");
   }
-  Serial.printf("\nWi-Fi connected. IP address: %s\n", WiFi.localIP().toString().c_str());
-  Serial.printf("Scout control page: http://%s.local/\n", robotHost());
-  Serial.println("Pi dashboard: http://10.42.0.1/");
-  Serial.println("Registering with Pi at 10.42.0.1:8080...");
+}
+
+void maintainWiFi() {
+  const bool connected = WiFi.status() == WL_CONNECTED;
+  if (connected) {
+    if (!wifiWasConnected) {
+      wifiWasConnected = true;
+      Serial.printf("Wi-Fi connected. IP address: %s\n", WiFi.localIP().toString().c_str());
+      Serial.println("Pi dashboard: http://10.42.0.1/");
+      startMdns();
+      if (!csiStarted) {
+        startCsi();
+        csiStarted = true;
+      }
+      if (!serverStarted) {
+        configureServer();
+        serverStarted = true;
+      }
+    }
+    return;
+  }
+
+  if (wifiWasConnected) {
+    wifiWasConnected = false;
+    piRegistered = false;
+    if (mdnsStarted) MDNS.end();
+    mdnsStarted = false;
+    Serial.println("Wi-Fi disconnected; stopping motors and retrying the Pi hotspot.");
+  }
+
+  stopMotors();
+  if (millis() - lastWiFiAttemptAt < WIFI_RETRY_MS) return;
+  lastWiFiAttemptAt = millis();
+  // Do not wait here. A blocking startup loop previously left a scout unable
+  // to recover when it powered on before the 3TSahur hotspot was ready.
+  WiFi.disconnect(false, false);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.println("Retrying 3TSahur-Swarm...");
 }
 
 void setup() {
@@ -361,17 +405,8 @@ void setup() {
   drivetrain.setBrake();
   stopMotors();
 
-  connectWiFi();
-  mdnsStarted = MDNS.begin(robotHost());
-  if (mdnsStarted) {
-    MDNS.addService("http", "tcp", 80);
-    Serial.printf("mDNS ready: http://%s.local/\n", robotHost());
-  } else {
-    Serial.println("mDNS failed; Pi registration will still work by IP.");
-  }
+  beginWiFi();
   csiUdp.begin(0);
-  startCsi();
-  configureServer();
   if (xTaskCreate(piRegistrationTask, "pi-registration", 4096, nullptr, 1, nullptr) != pdPASS) {
     Serial.println("Could not start HTTP registration task; UDP heartbeat remains active.");
   }
@@ -379,18 +414,11 @@ void setup() {
 }
 
 void loop() {
-  server.handleClient();
+  maintainWiFi();
+  if (serverStarted) server.handleClient();
   processCsi();
   sendHeartbeat();
 
   if (!motorsStopped && millis() - lastCommandAt > COMMAND_TIMEOUT_MS) stopMotors();
-
-  if (WiFi.status() != WL_CONNECTED) {
-    stopMotors();
-    if (millis() - lastWiFiAttemptAt >= WIFI_RETRY_MS) {
-      lastWiFiAttemptAt = millis();
-      WiFi.reconnect();
-    }
-  }
   delay(2);
 }

@@ -45,17 +45,18 @@ Open `http://10.42.0.1` after connecting to the 3TSahur hotspot. On a device tha
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│  3TSahur + LARP command center                         ● Online     │
-├─────────────────────┬───────────────────┬───────────────────────────┤
-│ Logitech C270 feed  │ LARP Scout A feed │ LARP Scout B feed         │
-│                     │                   │                           │
-├─────────────────────┴───────────────────┴───────────────────────────┤
-│  3TSahur mecanum controls  │  LARP A controls  │  LARP B controls  │
-│  direction + stop          │  direction + stop│  direction + stop │
-├─────────────────────────────────────────────────────────────────────┤
-│  Status, connection state, emergency STOP ALL, touch-friendly UI    │
+│  [ 3TSahur ]  [ LARP Scout A ]  [ LARP Scout B ]     ● Online       │
+├───────────────────────────────────┬─────────────────────────────────┤
+│  Selected robot's live camera     │  Selected robot's controls      │
+│  (one stream active at a time)    │  status, speed, and stop        │
+├───────────────────────────────────┴─────────────────────────────────┤
+│  Emergency STOP ALL · responsive phone/tablet/desktop layout         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+Only the selected tab keeps its MJPEG feed open. This preserves hotspot
+bandwidth for low-latency robot commands instead of competing with three video
+streams at once.
 
 The dashboard works with mouse/touch controls and the following keyboard shortcuts when the page is focused:
 
@@ -163,7 +164,7 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **18 hardware-independent tests successfully**: 5 motor, 1 camera, 10 firmware, and 2 scout tests. The Flask server-route tests require Flask to be installed in the local environment; they were documented separately rather than reported as passed. Hardware validation is still required for motor polarity, motor current, Wi-Fi range, camera focus, and an emergency-stop test. Read [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact results and limitations.
+The recorded desktop simulation ran **39 tests successfully**: 5 dashboard UI, 5 motor, 1 camera, 11 firmware, 2 scout-registry, and 15 Flask API/dashboard tests. Hardware validation is still required for motor polarity, motor current, Wi-Fi range, camera focus, and an emergency-stop test. Read [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact results and limitations.
 
 ## Project structure
 

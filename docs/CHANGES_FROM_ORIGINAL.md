@@ -17,6 +17,12 @@ single-file prototype.
 - Moved/renamed the ECHO drive sketch to `firmware/larp-scout` and updated its
   station hostname and labels.
 - Added a dedicated Inland ESP32-CAM firmware package with mDNS MJPEG streams.
+- Reworked the dashboard into one tab per robot and keep only the selected
+  camera stream open, preventing three simultaneous MJPEG feeds from consuming
+  the Pi hotspot's control bandwidth.
+- Made the LARP controller and camera Wi-Fi startup non-blocking, so either
+  board can boot before the Pi hotspot and reconnect automatically. ESP32-CAM
+  streams are capped at 10 FPS to reserve wireless capacity for controls.
 
 ## Mecanum motor mapping
 

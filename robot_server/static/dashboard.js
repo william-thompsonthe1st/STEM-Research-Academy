@@ -7,7 +7,8 @@
   const status = document.querySelector('#pi-status');
   const host = document.querySelector('#host');
   const cameraMessage = document.querySelector('#camera-message');
-  const cameraImage = document.querySelector('.video');
+  const cameraImage = document.querySelector('[data-stream-for="3tsahur"]');
+  const cameraFeeds = [...document.querySelectorAll('[data-stream-for][data-stream-src]')];
   const toast = document.querySelector('#toast');
   const session = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
   const initialServerTime = Number(document.querySelector('meta[name="server-time-ms"]')?.content);
@@ -15,6 +16,7 @@
   let bigSequence = 0;
   let lastVector = '';
   let lastCameraRetryAt = 0;
+  let activeRobotTab = '3tsahur';
   const scoutSequences = {a: 0, b: 0};
   const bigKeys = new Set(['w', 'a', 's', 'd', 'q', 'e']);
   const scoutKeys = {
@@ -175,6 +177,44 @@
     if (show) showToast('ALL ROBOTS STOPPED');
   }
 
+  const robotTabs = [...document.querySelectorAll('[role="tab"][data-tab]')];
+  const robotPanels = [...document.querySelectorAll('[role="tabpanel"][data-tab-panel]')];
+
+  function activateOnlySelectedCamera(id) {
+    activeRobotTab = id;
+    // MJPEG feeds are continuous network traffic. Keep exactly one feed open
+    // so the shared 2.4 GHz Pi hotspot always has room for control packets.
+    cameraFeeds.forEach(feed => {
+      if (feed.dataset.streamFor === id) {
+        if (!feed.getAttribute('src')) feed.src = feed.dataset.streamSrc;
+      } else {
+        feed.removeAttribute('src');
+      }
+    });
+  }
+
+  function selectRobotTab(id, focus = false) {
+    const selectedTab = robotTabs.find(tab => tab.dataset.tab === id);
+    if (!selectedTab) return;
+    const changingTabs = selectedTab.getAttribute('aria-selected') !== 'true';
+    robotTabs.forEach(tab => {
+      const selected = tab === selectedTab;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    robotPanels.forEach(panel => {
+      const selected = panel.dataset.tabPanel === id;
+      panel.classList.toggle('active', selected);
+      panel.hidden = !selected;
+    });
+    activateOnlySelectedCamera(id);
+    // A tab change changes the operator's visual context. Stop all movement
+    // before showing another robot so a held or touch command cannot continue.
+    if (changingTabs) killAll();
+    if (focus) selectedTab.focus();
+  }
+
   function keyMotion(event, id) {
     return scoutKeys[id][id === 'a' ? event.key : event.key.toLowerCase()];
   }
@@ -239,6 +279,20 @@
   document.querySelector('#kill-all').addEventListener('click', () => killAll(true));
   speed.addEventListener('input', () => { speedValue.value = `${speed.value}%`; sendBig(true); });
 
+  robotTabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectRobotTab(tab.dataset.tab));
+    tab.addEventListener('keydown', event => {
+      let nextIndex = null;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % robotTabs.length;
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + robotTabs.length) % robotTabs.length;
+      if (event.key === 'Home') nextIndex = 0;
+      if (event.key === 'End') nextIndex = robotTabs.length - 1;
+      if (nextIndex === null) return;
+      event.preventDefault();
+      selectRobotTab(robotTabs[nextIndex].dataset.tab, true);
+    });
+  });
+
   document.querySelectorAll('.scout-controls').forEach(controls => {
     const id = controls.dataset.scout;
     const slider = controls.querySelector('input');
@@ -285,7 +339,7 @@
         : data.camera_device ? `Opening ${data.camera_device}...` : 'Looking for Logitech C270...';
       if (!data.camera_available && data.camera_error && Date.now() - lastCameraRetryAt > 5000) {
         lastCameraRetryAt = Date.now();
-        cameraImage.src = `/camera.mjpg?retry=${lastCameraRetryAt}`;
+        if (activeRobotTab === '3tsahur') cameraImage.src = `${cameraImage.dataset.streamSrc}?retry=${lastCameraRetryAt}`;
       }
     } catch (_) {
       status.classList.add('offline');
@@ -327,6 +381,7 @@
   }, 100);
   window.setInterval(refreshStatus, 3000);
   window.setInterval(() => { refreshScout('a'); refreshScout('b'); }, 2000);
+  activateOnlySelectedCamera(activeRobotTab);
   refreshStatus();
   refreshScout('a');
   refreshScout('b');
