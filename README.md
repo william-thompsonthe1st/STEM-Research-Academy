@@ -118,6 +118,17 @@ flowchart TB
 Read [docs/CHANGES_FROM_ORIGINAL.md](docs/CHANGES_FROM_ORIGINAL.md) for the
 full file-level integration record.
 
+### Verified compatibility with the partner baseline
+
+The current project retains the partner team's tested mecanum GPIO mapping,
+mixer, shared 15 ms reversal dead-time, latest-command-only control channel,
+300 ms command expiry, 200 ms Pi watchdog, ECHO motor IDs (`1`/`6`), and
+ESP32 Wi-Fi sleep-disable behavior. The 3TSahur/LARP work adds tabs, camera
+isolation, optional mission tools, and control-priority tuning around that
+foundation; it does not replace the motor architecture. See the detailed
+[partner baseline comparison](docs/PARTNER_BASELINE_COMPARISON.md) for every
+retained behavior, added feature, latency difference, and test limitation.
+
 ## Dashboard
 
 Open `http://10.42.0.1` after connecting to the 3TSahur hotspot. On a device that supports mDNS, `http://3tsahur.local` also works. The Pi's attached display opens the same dashboard automatically after installation.
