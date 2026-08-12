@@ -245,6 +245,53 @@ curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Researc
 The installer intentionally reboots. Read the script or use the clone method
 below first if your team prefers to inspect every install step locally.
 
+### Upgrade an existing Pi installation
+
+If the Pi already runs the partner project or another dashboard build, **do
+not reflash Raspberry Pi OS**. The 3TSahur installer replaces the installed
+application and restarts the existing `stem-robot-dashboard` service. It uses
+the same application path (`~/STEMResearchAcademy`) and configuration location
+(`/etc/stem-research-academy/config.env`), so do not attempt to run both
+dashboard versions at the same time.
+
+Before upgrading, run these commands as the normal Pi user to preserve the
+currently working partner build and its settings:
+
+```bash
+cp -a ~/STEMResearchAcademy ~/STEMResearchAcademy.partner-backup
+sudo cp /etc/stem-research-academy/config.env ~/stem-config.partner-backup.env
+```
+
+Then install the tested 3TSahur/LARP integration branch. This command skips a
+full Raspberry Pi OS package upgrade for a faster field update; it still
+installs and validates the project before switching the dashboard:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/agent/integrate-3tsahur-larp/installer/curl-install.sh | STEM_REPO_BRANCH=agent/integrate-3tsahur-larp STEM_SKIP_OS_UPGRADE=1 bash
+```
+
+After the Pi reboots, expect these intentional changes:
+
+- The hotspot is `3TSahur-Swarm` and the Pi hostname is `3tsahur`.
+- The dashboard is at `http://10.42.0.1` after joining that hotspot.
+- The retained mecanum GPIO layout and motor wiring stay the same.
+- Reflash each LARP controller with the LARP firmware and matching Wi-Fi
+  credentials before expecting it to reconnect. Reflash the ESP32-CAM boards
+  only when their new dashboard feeds are needed.
+
+Verify the service, then test 3TSahur with its wheels raised before connecting
+or driving the LARPs:
+
+```bash
+sudo systemctl status stem-robot-dashboard --no-pager
+sudo systemctl status stem-robot-hotspot --no-pager
+```
+
+If you need to return to the partner build after a successful upgrade, use the
+backup above or rerun the partner repository's installer. See the [partner
+baseline comparison](docs/PARTNER_BASELINE_COMPARISON.md) for the retained
+motor architecture and the exact configuration differences.
+
 ### Optional one-command YOLO install
 
 Install the base hub first. Then, if you want pretrained person detection,
