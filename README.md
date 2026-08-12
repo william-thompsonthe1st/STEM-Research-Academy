@@ -41,6 +41,41 @@ flowchart LR
     LB --- CB
 ```
 
+## Reproduction methodology
+
+This project is designed as a local-first system: the Pi hosts the Wi-Fi
+network, dashboard, motor control, C270 camera feed, and optional vision
+worker. The two LARPs join that same network, register a heartbeat, receive
+short-lived drive commands, and expose their own camera feeds. Nothing in
+normal operation requires cloud access.
+
+1. **Build safely.** Assemble and wire the parts in the rebuild checklist,
+   leaving motor power disconnected until software checks pass.
+2. **Install the Pi hub.** Flash Raspberry Pi OS, clone this repository, run
+   the installer, and join the resulting `3TSahur-Swarm` hotspot.
+3. **Flash the four scout boards.** Configure A/B identifiers and matching
+   hotspot credentials in both LARP drive boards and both ESP32-CAM boards.
+4. **Validate one subsystem at a time.** Confirm the Pi dashboard, C270, each
+   camera stream, each LARP heartbeat, then raised-wheel drive directions.
+5. **Operate with control priority.** Keep one dashboard camera stream open,
+   start in the Control Priority camera profile if radio capacity is limited,
+   and test `Space`/`Esc` before floor operation.
+6. **Enable optional analysis last.** Use CSI calibration with the scene clear,
+   then enable YOLO only for the selected camera when its performance is
+   acceptable.
+
+### What happens when the system runs
+
+- The browser sends only current, expiring commands; stale/reordered input is
+  rejected and the Pi watchdog stops 3TSahur if refreshes cease.
+- Switching robot tabs stops all robots and closes inactive MJPEG streams to
+  protect control bandwidth.
+- LARP drive status, CSI, timeline, health, vision, snapshots, and camera
+  profiles are auxiliary features. Their failure must display a status only;
+  it cannot disable the core stop/watchdog/control paths.
+- The mission timeline is capped at 120 in-memory events. Snapshots are saved
+  locally by the Pi; copy any images you need before rebooting or updating.
+
 ## Dashboard
 
 Open `http://10.42.0.1` after connecting to the 3TSahur hotspot. On a device that supports mDNS, `http://3tsahur.local` also works. The Pi's attached display opens the same dashboard automatically after installation.
@@ -259,7 +294,14 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **41 tests successfully**: 6 dashboard UI, 5 motor, 1 camera, 12 firmware, 2 scout-registry, and 15 Flask API/dashboard tests. Hardware validation is still required for motor polarity, motor current, Wi-Fi range, camera focus, CSI calibration, and an emergency-stop test. Read [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact results and limitations.
+The recorded desktop simulation ran **49 tests successfully**: dashboard/UI,
+mecanum mixing, camera discovery/profile isolation, firmware invariants,
+scout registry, Flask control APIs, mission events, snapshots, and optional
+vision failure handling. Hardware validation is still required for motor
+polarity/current, Wi-Fi range, camera focus, CSI calibration, gamepad mapping,
+and physical emergency-stop behavior. Read
+[docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact
+results and limitations.
 
 ## Project structure
 
