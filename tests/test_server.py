@@ -84,6 +84,11 @@ class ServerTests(unittest.TestCase):
         self.assertIn(b"LARP Scout B", response.data)
         self.assertIn(b"3TSahur", response.data)
 
+    def test_unknown_vision_source_is_rejected_without_affecting_drive(self):
+        response = self.client.get("/api/vision/unknown")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(drive.last_command["forward"], 0)
+
     @patch("robot_server.app.scout_registry.record", return_value={
         "id": "a", "ip": "10.42.0.31", "last_seen": 1.0,
         "rssi": -51, "uptime_ms": 1200, "transport": "http",
