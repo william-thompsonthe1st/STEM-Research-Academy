@@ -19,6 +19,7 @@ from flask import Flask, Response, jsonify, render_template, request
 from .camera import CameraStream
 from .motor import MecanumDrive
 from .scouts import ScoutRegistry
+from .vision import VisionManager
 
 
 # Drive heartbeats are intentionally frequent and must not flood journald.
@@ -52,6 +53,24 @@ SCOUTS = {
         "camera": os.environ.get("LARP_B_CAMERA_URL") or "http://larp-b-cam.local/stream",
     },
 }
+
+
+def _scout_frame(scout_id: str):
+    """Read one scout frame in the optional worker, never in a request route."""
+    import cv2  # type: ignore
+    stream = cv2.VideoCapture(SCOUTS[scout_id]["camera"])
+    try:
+        ok, frame = stream.read()
+        return frame if ok else None
+    finally:
+        stream.release()
+
+
+vision = VisionManager({
+    "3tsahur": camera.latest_jpeg,
+    "larp-a": lambda: _scout_frame("a"),
+    "larp-b": lambda: _scout_frame("b"),
+})
 
 
 def _scout_request(scout_id: str, path: str, query: dict | None = None) -> dict:
@@ -101,8 +120,19 @@ def create_app() -> Flask:
             camera_error=camera.error,
             camera_device=camera.selected_device,
             command=drive.last_command,
+            vision={source: vision.snapshot(source) for source in ("3tsahur", "larp-a", "larp-b")},
             server_time_ms=round(time.time() * 1000),
         )
+
+    @app.route("/api/vision/<source>", methods=["GET", "POST"])
+    def vision_status(source: str):
+        try:
+            if request.method == "POST":
+                enabled = bool((request.get_json(silent=True) or {}).get("enabled", False))
+                return jsonify(vision.set_enabled(source, enabled))
+            return jsonify(vision.snapshot(source))
+        except KeyError:
+            return jsonify(error="Unknown vision source"), 404
 
     @app.post("/api/drive")
     def command_drive():
@@ -275,6 +305,7 @@ def cleanup() -> None:
     shutdown_event.set()
     drive.close()
     camera.close()
+    vision.close()
     scout_registry.close()
 
 
