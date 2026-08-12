@@ -143,6 +143,17 @@ class CameraStream:
         with self._condition:
             return self._frame
 
+    def configure(self, width: int, height: int, fps: int) -> None:
+        """Apply a profile by restarting only the camera capture worker."""
+        if not (160 <= width <= 1920 and 120 <= height <= 1080 and 1 <= fps <= 30):
+            raise ValueError("Unsupported camera profile")
+        self.close()
+        with self._condition:
+            self.width, self.height, self.fps = width, height, fps
+            self._frame = None
+            self.error = None
+            self.selected_device = None
+
     def close(self) -> None:
         self._running = False
         with self._condition:
