@@ -449,17 +449,22 @@ motor controller.
 
 #### If the available bridge is an Arduino UNO R4
 
-An UNO R4 Minima or UNO R4 WiFi can relay serial data, but it is **not** a
-drop-in 3.3 V USB-to-UART adapter. Arduino specifies both UNO R4 variants as
-5 V boards, while Espressif requires a 3.3 V UART and explicitly warns against
-5 V TTL serial. Never connect UNO R4 **D1/TX** directly to ESP32-CAM
-**U0R/GPIO 3**. Use a two-channel, UART-capable **5 V to 3.3 V logic-level
-shifter** in both directions. A resistor divider protects only the ESP receive
-direction; by itself it does not guarantee that the UNO R4 will recognize the
-ESP's 3.3 V transmit signal.
+The UNO R4 can pass upload data between the computer and camera, but it cannot
+connect directly because its serial pins use 5 V logic and the ESP32 uses
+3.3 V logic. A resistor divider alone is not enough. You need:
 
-1. With nothing wired to D0/D1, select the exact **UNO R4 Minima** or **UNO R4
-   WiFi** board and its USB port. Upload this bridge sketch:
+- an UNO R4 Minima or UNO R4 WiFi and its USB cable;
+- a **two-channel, UART-capable 5 V-to-3.3 V logic-level shifter**;
+- a separate regulated **5 V, 1 A or greater** camera supply;
+- jumper wires, including a removable GPIO 0-to-GND jumper.
+
+> **Do not connect UNO D1/TX directly to camera U0R/GPIO 3. Do not power the
+> camera from the UNO 3.3 V pin. Disconnect USB and camera power before
+> changing wires.**
+
+1. **Prepare the UNO.** Leave D0 and D1 disconnected. Connect only the UNO USB
+   cable. In Arduino IDE, select your exact UNO R4 model and its serial port,
+   then upload this bridge sketch:
 
    ```cpp
    void setup() {
@@ -473,34 +478,47 @@ ESP's 3.3 V transmit signal.
    }
    ```
 
-2. Disconnect USB and camera power. Power the ESP32-CAM from its own stable,
-   regulated 5 V supply rated for at least 1 A; do not use the UNO R4's 3.3 V
-   pin to power the camera. Connect all grounds together, then wire through the
-   level shifter:
+   **Checkpoint:** Arduino IDE reports a successful UNO upload. Leave this
+   sketch running; do not hold the UNO in reset.
+2. **Wire everything with all power disconnected.** `HV`/`LV` names vary by
+   shifter, so follow its labels and direction markings.
 
-   | UNO R4 / level shifter | ESP32-CAM |
-   | --- | --- |
-   | D1/TX -> shifter 5 V-side input -> 3.3 V-side output | U0R / GPIO 3 |
-   | D0/RX <- shifter 5 V-side output <- 3.3 V-side input | U0T / GPIO 1 |
-   | GND | GND and supply GND |
-   | GND, only for upload | GPIO 0 |
+   ```text
+   COMPUTER --USB--> UNO R4
 
-   Power the shifter's high side from UNO **5V** and low side from UNO
-   **3.3V**, following that shifter's labeled directions. Do not join the
-   camera's separate 5 V supply output to the UNO 5 V pin.
-3. Reconnect power. Keep **GPIO 0 low while resetting or powering up** the
-   camera so the ESP32 enters its ROM serial bootloader. In Arduino IDE, change
-   the selected board to **AI Thinker ESP32-CAM**, keep the UNO R4 USB serial
-   port selected, set upload speed to **115200**, close Serial Monitor, and
-   upload the camera sketch. Do not hold the UNO R4 in reset; it must keep
-   running the bridge sketch.
-4. After a successful upload, disconnect camera power, remove the GPIO 0-to-GND
-   jumper, restore power, and press camera Reset if needed. Then reopen Serial
-   Monitor at 115200 to read the camera's boot and network messages.
+   UNO 5V  ------> shifter HV power       UNO GND ---------+
+   UNO 3.3V -----> shifter LV power       shifter GND -----+-- common ground
+   UNO D1/TX ----> [5V -> 3.3V channel] --> ESP U0R/GPIO 3  |
+   UNO D0/RX <---- [5V <- 3.3V channel] <-- ESP U0T/GPIO 1  |
+                                                            |
+   separate 5V >=1A supply + ----------------> ESP 5V      |
+   separate supply GND ------------------------------------+
+   ESP GPIO 0 ---------------------------------> GND  (upload only)
+   ```
 
-This manual bridge has no DTR/RTS auto-reset wiring, so the camera boot sequence
-is manual. If upload synchronization remains unreliable, use a dedicated
-3.3 V USB-to-UART adapter. Electrical and boot-mode rationale: [Arduino UNO R4
+   Do not connect the separate supply's positive 5 V output to UNO 5V.
+   **Checkpoint:** TX and RX are crossed through two shifter channels, every
+   device shares ground, and GPIO 0 is connected to ground.
+3. **Enter camera upload mode.** Reconnect UNO USB and camera power while GPIO 0
+   remains grounded. Press the camera **Reset** button once; if it has no Reset
+   button, briefly remove and restore camera power.
+4. **Upload the camera sketch.** In Arduino IDE, open
+   `firmware/larp-esp32-cam/larp_esp32_cam.ino`. Change the selected board to
+   **AI Thinker ESP32-CAM**, but keep the **same UNO R4 USB serial port**
+   selected. Set upload speed to **115200** and close Serial Monitor. Confirm
+   `CAMERA_ID`, `WIFI_SSID`, and `WIFI_PASSWORD`, then select **Upload**.
+
+   **Checkpoint:** the output ends with a successful flash/reset message. If it
+   stays on `Connecting...`, press camera Reset once, check GPIO 0 is grounded,
+   and verify the crossed TX/RX paths.
+5. **Return the camera to normal boot.** Disconnect camera power. Remove only
+   the GPIO 0-to-GND jumper, then restore camera power. Press camera Reset if
+   needed. Open Serial Monitor at **115200** to see its network address.
+
+The UNO bridge cannot automatically control the camera's Reset or GPIO 0 pins.
+If it still cannot synchronize after checking the wiring and using short
+jumpers, use a dedicated 3.3 V USB-to-UART adapter. Electrical rationale:
+[Arduino UNO R4
 Minima documentation](https://docs.arduino.cc/hardware/uno-r4-minima), [Arduino
 UNO R4 WiFi documentation](https://docs.arduino.cc/hardware/uno-r4-wifi/),
 [Renesas RA4M1 input thresholds](https://docs.arduino.cc/resources/datasheets/ra4m1-datasheet.pdf),
