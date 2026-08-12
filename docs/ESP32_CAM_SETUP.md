@@ -49,8 +49,12 @@ the resulting MJPEG stream over Wi-Fi.
    | GND, only while uploading | GPIO 0 |
 
 3. Select the board profile that matches the printed module. For an
-   AI Thinker-compatible camera, select **AI Thinker ESP32-CAM** and the
-   correct serial port. Use a low upload speed if uploads are unreliable.
+   AI Thinker-compatible camera, select **esp32 by Espressif Systems > AI
+   Thinker ESP32-CAM** and the correct serial port. `NodeMCU-32S` is a generic
+   ESP32 profile and is not supported for this project. It may upload a binary,
+   but neither the upload nor firmware can reliably detect the IDE profile or
+   prove the attached camera uses the expected pinout. Use a low upload speed
+   if uploads are unreliable.
 4. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 5. For Scout A, set `CAMERA_ID` to `'A'`; for Scout B, set it to `'B'`.
    Set `WIFI_SSID` and `WIFI_PASSWORD` to exactly match the Pi hotspot.
@@ -193,7 +197,8 @@ camera power. GPIO 0 must be low at reset for the ROM upload mode.
 
 1. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 2. Set `CAMERA_ID`, `WIFI_SSID`, and `WIFI_PASSWORD`.
-3. Change the IDE board to **AI Thinker ESP32-CAM**.
+3. Change the IDE board to **esp32 by Espressif Systems > AI Thinker
+   ESP32-CAM**. Do not leave it on `NodeMCU-32S`.
 4. Keep the **same UNO R4 USB serial port** selected.
 5. Set upload speed to **115200** and close Serial Monitor.
 6. Select **Upload**.
@@ -284,7 +289,7 @@ sudo systemctl restart stem-robot-dashboard
 | Symptom | Check |
 | --- | --- |
 | No serial boot or repeated brownout | Use a regulated 5 V supply and short power leads; camera startup can draw more current than a USB adapter provides. |
-| `Camera initialization failed` | Confirm the Inland board uses the AI Thinker-compatible pin map and that the ribbon cable is seated. |
+| `Camera initialization failed` | Read the new `esp_err` and expected-pinout messages at 115200. Select **AI Thinker ESP32-CAM**, confirm the Inland silk-screen/pins match, reseat the ribbon cable, and verify regulated 5 V power. |
 | Camera joins Wi-Fi but no dashboard image | Open `/status` and `/stream` directly, then verify `LARP_A_CAMERA_URL` or `LARP_B_CAMERA_URL`. |
 | Camera cannot join the hotspot | Use the 2.4 GHz `3TSahur-Swarm` network, verify the password, and keep it at least eight characters. |
 | Controls become slow while video runs | Verify only one dashboard tab is active, keep the 10 FPS firmware setting, and move the cameras closer to the Pi hotspot. |

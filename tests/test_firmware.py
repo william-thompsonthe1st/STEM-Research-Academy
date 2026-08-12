@@ -84,6 +84,12 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn("STREAM_FRAME_INTERVAL_MS = 100", self.camera_source)
         self.assertIn("vTaskDelay(pdMS_TO_TICKS", self.camera_source)
 
+    def test_camera_init_failure_explains_required_profile_and_pinout(self):
+        self.assertIn("Camera initialization failed (esp_err=0x%x)", self.camera_source)
+        self.assertIn("AI Thinker ESP32-CAM", self.camera_source)
+        self.assertIn("NodeMCU-32S may upload", self.camera_source)
+        self.assertIn("PWDN 32, XCLK 0", self.camera_source)
+
     def test_installer_schedules_reboot_outside_pipe_process(self):
         self.assertIn("systemd-run", self.installer)
         self.assertIn("--on-active=10s", self.installer)

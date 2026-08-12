@@ -451,6 +451,11 @@ motor controller.
    port, and open
    [`firmware/larp-esp32-cam/larp-esp32-cam.ino`](firmware/larp-esp32-cam/larp-esp32-cam.ino).
    If the upload is unreliable, lower the upload speed.
+
+   **Do not use `NodeMCU-32S` for this project.** It is a generic ESP32 profile
+   and may appear to upload successfully, but that does not confirm the camera
+   pinout. This firmware deliberately retains the common AI Thinker ESP32-CAM
+   camera pins. Verify the Inland module's silk-screen/pinout matches AI Thinker.
 5. Set `CAMERA_ID` to `'A'` for Scout A or `'B'` for Scout B. Set
    `WIFI_SSID` and `WIFI_PASSWORD` to the exact credentials for the
    `3TSahur-Swarm` Pi hotspot.
@@ -548,7 +553,8 @@ flowchart LR
    button, briefly remove and restore camera power.
 4. **Upload the camera sketch.** In Arduino IDE, open
    `firmware/larp-esp32-cam/larp-esp32-cam.ino`. Change the selected board to
-   **AI Thinker ESP32-CAM**, but keep the **same UNO R4 USB serial port**
+   **esp32 by Espressif Systems > AI Thinker ESP32-CAM**, but keep the **same
+   UNO R4 USB serial port**
    selected. Set upload speed to **115200** and close Serial Monitor. Confirm
    `CAMERA_ID`, `WIFI_SSID`, and `WIFI_PASSWORD`, then select **Upload**.
 

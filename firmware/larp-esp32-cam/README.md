@@ -8,4 +8,6 @@ serves an MJPEG stream at `http://larp-a-cam.local/stream` or
 
 The default pins target the common AI Thinker-compatible Inland ESP32-CAM.
 Verify the module's printed pinout and power it from a stable supply before
-flashing or using it. The camera board does not drive the scout motors.
+flashing or using it. In Arduino IDE select **esp32 by Espressif Systems > AI
+Thinker ESP32-CAM**; `NodeMCU-32S` is generic and is not the supported profile.
+The camera board does not drive the scout motors.
