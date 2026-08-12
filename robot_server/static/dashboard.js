@@ -19,6 +19,8 @@
   let activeRobotTab = '3tsahur';
   const scoutSequences = {a: 0, b: 0};
   const scoutStatusInFlight = {a: false, b: false};
+  const visionEnabled = {'3tsahur': false, 'larp-a': false, 'larp-b': false};
+  const visionInFlight = {'3tsahur': false, 'larp-a': false, 'larp-b': false};
   const bigKeys = new Set(['w', 'a', 's', 'd', 'q', 'e']);
   const scoutKeys = {
     a: {ArrowLeft: 'left', ArrowUp: 'forward', ArrowDown: 'back', ArrowRight: 'right'},
@@ -216,6 +218,78 @@
     if (focus) selectedTab.focus();
   }
 
+  function clearVisionOverlay(source) {
+    const canvas = document.querySelector(`[data-vision-overlay="${source}"]`);
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function renderVision(source, data) {
+    const button = document.querySelector(`[data-vision-toggle="${source}"]`);
+    const label = document.querySelector(`[data-vision-status="${source}"]`);
+    const canvas = document.querySelector(`[data-vision-overlay="${source}"]`);
+    button.setAttribute('aria-pressed', String(Boolean(data.enabled)));
+    button.textContent = `${data.enabled ? 'Vision on' : 'Vision off'} · C`;
+    if (!data.enabled) {
+      label.textContent = 'Vision ready when enabled';
+      clearVisionOverlay(source);
+      return;
+    }
+    if (!data.available) {
+      label.textContent = data.error ? `Vision unavailable: ${data.error}` : 'Starting vision worker…';
+      clearVisionOverlay(source);
+      return;
+    }
+    const detections = data.detections || [];
+    label.textContent = detections.length ? `${detections.length} person${detections.length === 1 ? '' : 's'} detected` : 'No person detected';
+    const bounds = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(bounds.width));
+    canvas.height = Math.max(1, Math.round(bounds.height));
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    if (!data.frame_width || !data.frame_height) return;
+    const scaleX = canvas.width / data.frame_width;
+    const scaleY = canvas.height / data.frame_height;
+    context.strokeStyle = '#b9ff38'; context.fillStyle = '#b9ff38'; context.lineWidth = 2;
+    context.font = '700 12px ui-monospace, monospace';
+    detections.forEach(box => {
+      const x = box.x1 * scaleX, y = box.y1 * scaleY;
+      const width = (box.x2 - box.x1) * scaleX, height = (box.y2 - box.y1) * scaleY;
+      context.strokeRect(x, y, width, height);
+      context.fillText(`PERSON ${Math.round(box.confidence * 100)}%`, x + 3, Math.max(13, y - 5));
+    });
+  }
+
+  async function refreshVision(source) {
+    if (!visionEnabled[source] || visionInFlight[source]) return;
+    visionInFlight[source] = true;
+    try {
+      const response = await fetch(`/api/vision/${source}`, {cache: 'no-store'});
+      renderVision(source, await response.json());
+    } catch (_) {
+      renderVision(source, {enabled: true, available: false, error: 'status request failed'});
+    } finally {
+      visionInFlight[source] = false;
+    }
+  }
+
+  async function toggleVision(source) {
+    const enabled = !visionEnabled[source];
+    visionEnabled[source] = enabled;
+    renderVision(source, {enabled, available: null, detections: []});
+    try {
+      const response = await fetch(`/api/vision/${source}`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled}), cache: 'no-store'});
+      if (!response.ok) throw new Error(`request failed: ${response.status}`);
+      renderVision(source, await response.json());
+      showToast(`${source === '3tsahur' ? '3TSahur' : source === 'larp-a' ? 'LARP Scout A' : 'LARP Scout B'} vision ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (_) {
+      visionEnabled[source] = false;
+      renderVision(source, {enabled: false, available: null, detections: []});
+      showToast('Vision unavailable - robot controls remain active');
+    }
+  }
+
   function keyMotion(event, id) {
     return scoutKeys[id][id === 'a' ? event.key : event.key.toLowerCase()];
   }
@@ -230,6 +304,11 @@
     if (key === ' ') {
       event.preventDefault();
       killBig(true);
+      return;
+    }
+    if (key === 'c' && !event.repeat) {
+      event.preventDefault();
+      toggleVision(activeRobotTab);
       return;
     }
     if (bigKeys.has(key)) {
@@ -278,6 +357,7 @@
   window.addEventListener('pagehide', () => killAll());
   document.querySelector('#stop').addEventListener('click', () => killBig(true));
   document.querySelector('#kill-all').addEventListener('click', () => killAll(true));
+  document.querySelectorAll('[data-vision-toggle]').forEach(button => button.addEventListener('click', () => toggleVision(button.dataset.visionToggle)));
   speed.addEventListener('input', () => { speedValue.value = `${speed.value}%`; sendBig(true); });
 
   robotTabs.forEach((tab, index) => {
@@ -409,6 +489,7 @@
     const id = activeRobotTab === 'larp-a' ? 'a' : activeRobotTab === 'larp-b' ? 'b' : null;
     if (id) refreshScout(id);
   }, 750);
+  window.setInterval(() => refreshVision(activeRobotTab), 500);
   activateOnlySelectedCamera(activeRobotTab);
   refreshStatus();
   refreshScout('a');
