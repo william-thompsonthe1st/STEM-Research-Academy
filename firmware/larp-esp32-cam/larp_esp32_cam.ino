@@ -12,12 +12,14 @@
 constexpr char CAMERA_ID = 'A';  // Change the second board to 'B'.
 constexpr char WIFI_SSID[] = "3TSahur-Swarm";
 constexpr char WIFI_PASSWORD[] = "roboswarm1";
-constexpr unsigned long WIFI_RETRY_MS = 5000;
+constexpr unsigned long WIFI_RETRY_A_MS = 2000;
+constexpr unsigned long WIFI_RETRY_B_MS = 2400;
 constexpr unsigned long STREAM_FRAME_INTERVAL_MS = 100;  // 10 FPS maximum.
 static_assert(CAMERA_ID == 'A' || CAMERA_ID == 'B', "CAMERA_ID must be A or B");
 
 const char *cameraHost() { return CAMERA_ID == 'A' ? "larp-a-cam" : "larp-b-cam"; }
 const char *cameraName() { return CAMERA_ID == 'A' ? "LARP Scout A Camera" : "LARP Scout B Camera"; }
+unsigned long wifiRetryMs() { return CAMERA_ID == 'A' ? WIFI_RETRY_A_MS : WIFI_RETRY_B_MS; }
 
 // AI Thinker-compatible ESP32-CAM pin assignment.
 constexpr int PWDN = 32, RESET = -1, XCLK = 0, SIOD = 26, SIOC = 27;
@@ -119,7 +121,7 @@ void maintainWiFi() {
     mdnsStarted = false;
     Serial.println("Camera Wi-Fi disconnected; retrying the Pi hotspot.");
   }
-  if (millis() - lastWiFiAttemptAt < WIFI_RETRY_MS) return;
+  if (millis() - lastWiFiAttemptAt < wifiRetryMs()) return;
   lastWiFiAttemptAt = millis();
   // Never block setup waiting for the hotspot: cameras may boot before 3TSahur.
   WiFi.disconnect(false, false);
