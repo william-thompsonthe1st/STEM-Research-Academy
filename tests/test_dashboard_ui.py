@@ -61,6 +61,8 @@ class DashboardTabTests(unittest.TestCase):
         self.assertIn("/api/snapshots/${source}", SCRIPT)
         self.assertIn("navigator.getGamepads", SCRIPT)
         self.assertIn("lastGamepadSignature", SCRIPT)
+        self.assertIn("lastGamepadSentAt", SCRIPT)
+        self.assertIn("now - lastGamepadSentAt >= 80", SCRIPT)
 
     def test_tab_switching_is_keyboard_accessible_and_stops_motion(self):
         self.assertIn('function selectRobotTab', SCRIPT)
