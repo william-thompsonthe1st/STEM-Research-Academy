@@ -19,6 +19,7 @@ from uuid import uuid4
 
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 
+from .actuators import ActuatorController
 from .camera import CameraStream
 from .motor import MecanumDrive
 from .scouts import ScoutRegistry
@@ -79,6 +80,7 @@ event_lock = threading.Lock()
 snapshot_dir = Path(os.environ.get("SNAPSHOT_DIR", "/tmp/3tsahur-snapshots"))
 CAMERA_PROFILES = {"control": (320, 240, 6), "balanced": (640, 480, 10), "detail": (1280, 720, 12)}
 camera_profile = "balanced"
+actuators = ActuatorController()
 
 
 def record_event(kind: str, source: str, message: str) -> dict:
@@ -152,6 +154,7 @@ def create_app() -> Flask:
             camera_fps=camera.fps,
             uptime_seconds=round(time.monotonic(), 1),
             command=drive.last_command,
+            actuators=actuators.snapshot(),
             vision={source: vision.snapshot(source) for source in ("3tsahur", "larp-a", "larp-b")},
             server_time_ms=round(time.time() * 1000),
         )
@@ -170,6 +173,25 @@ def create_app() -> Flask:
         except ValueError as error:
             return jsonify(error=str(error)), 400
 
+    @app.post("/api/actuators/gimbal")
+    def set_gimbal():
+        payload = request.get_json(silent=True) or {}
+        try:
+            result = actuators.set_gimbal(payload.get("pan"), payload.get("tilt"))
+            record_event("gimbal", "3tsahur", f"Gimbal target pan {result['gimbal']['pan']}°, tilt {result['gimbal']['tilt']}°")
+            return jsonify(ok=True, **result)
+        except ValueError as error:
+            return jsonify(error=str(error)), 400
+
+    @app.post("/api/actuators/ramp")
+    def set_ramp():
+        payload = request.get_json(silent=True) or {}
+        try:
+            result = actuators.set_ramp(payload.get("state"))
+            record_event("ramp", "3tsahur", f"Ramp target {result['ramp']['state']}")
+            return jsonify(ok=True, **result)
+        except ValueError as error:
+            return jsonify(error=str(error)), 400
     @app.route("/api/vision/<source>", methods=["GET", "POST"])
     def vision_status(source: str):
         try:
