@@ -1,9 +1,9 @@
 # Simulation results
 
-Date: 2026-08-11
+Date: 2026-08-12
 
 The integration base and the 3TSahur/LARP updates were compiled with Python.
-All 51 hardware-independent tests passed in an isolated desktop virtual
+All 56 hardware-independent tests passed in an isolated desktop virtual
 environment with the repository's Flask dependency installed.
 
 | Group | Checks | Result |
@@ -14,6 +14,7 @@ environment with the repository's Flask dependency installed.
 | `test_firmware.py` | LARP reconnect behavior, CSI status fields, capped camera stream rate, firmware settings, and installer invariants | pass |
 | `test_scouts.py` | heartbeat registry handling | pass |
 | `test_server.py` | hub API, expiry/sequence safety, profile/control isolation, timeline, snapshot failure handling, dashboard, and scout proxy behavior | pass |
+| `test_swarm_compatibility.py` | simultaneous 3TSahur, LARP A, and LARP B route compatibility plus local control-path queue check | pass |
 
 The test harness uses fake GPIO/PWM implementations and mocked network/camera
 interfaces. It verifies the partner-base forward pins `5, 16, 20, 13` and
@@ -37,6 +38,27 @@ by a current drive command. The profile response and subsequent drive command
 both passed in the simulated environment. This verifies route separation, not
 the physical C270's reopen time; changing a profile should therefore be done
 while stationary.
+
+## Three-robot compatibility and timing check
+
+The current compatibility pass registered both LARPs with distinct simulated
+hotspot addresses, then sent one current 3TSahur mecanum command, one LARP A
+drive command, and one LARP B drive command. Both LARP status routes returned
+successfully and the 3TSahur motor state remained current. This exercises the
+same dashboard API routes that the three tabs use, with scout HTTP calls mocked
+to remove physical radio variation.
+
+In 100 repeated composite cycles, each containing all three of those commands,
+the local Flask/test-client control path averaged **0.473 ms** per cycle, with
+a **0.770 ms** 95th percentile and **1.179 ms** maximum. The compatibility
+test also asserts a 50 ms local ceiling across repeated Pi/LARP requests, so a
+new local request queue cannot silently reintroduce multi-second delays.
+
+This confirms software compatibility and the absence of a local API backlog;
+it does **not** measure the Pi's hotspot airtime, 2.4 GHz interference, ESP32
+processing, servo behavior, battery voltage drop, or actual motor response.
+Use [the field information checklist](FIELD_INFORMATION_CHECKLIST.md) and the
+raised-wheel connection test before declaring the system field-ready.
 
 Not simulated: physical motor direction/current, C270 USB capture, real Wi-Fi
 radio behavior, ECHO motor IDs, Inland ESP32-CAM pin map, and Arduino upload.
