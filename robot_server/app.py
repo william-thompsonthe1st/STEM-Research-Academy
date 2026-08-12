@@ -31,6 +31,9 @@ from .vision import VisionManager
 logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
 WATCHDOG_SECONDS = float(os.environ.get("DRIVE_WATCHDOG_SECONDS", "0.20"))
+# A drive route must return well before the browser's latest-command timeout.
+# This bounds a missing/offline scout without extending a stale command queue.
+SCOUT_REQUEST_TIMEOUT_SECONDS = float(os.environ.get("SCOUT_REQUEST_TIMEOUT_SECONDS", "0.12"))
 drive = MecanumDrive()
 camera = CameraStream(
     device=os.environ.get("CAMERA_DEVICE", "auto"),
@@ -109,7 +112,7 @@ def _scout_request(scout_id: str, path: str, query: dict | None = None) -> dict:
     suffix = f"?{urllib.parse.urlencode(query)}" if query else ""
     host = scout_registry.host_for(scout_id, scout["host"])
     url = f"http://{host}{path}{suffix}"
-    with urllib.request.urlopen(url, timeout=0.20) as response:
+    with urllib.request.urlopen(url, timeout=SCOUT_REQUEST_TIMEOUT_SECONDS) as response:
         body = response.read(8192).decode("utf-8")
     return json.loads(body) if body else {"ok": True}
 
