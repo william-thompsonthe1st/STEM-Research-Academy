@@ -1,4 +1,4 @@
-# 3TSahur + LARP Reconnaissance Swarm
+# 3TSAHUR + LARP Reconnaissance Swarm
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/control-Python_3.11%2B-3776AB?logo=python&logoColor=white">
@@ -9,15 +9,24 @@
   <img alt="Branch" src="https://img.shields.io/badge/production-main-success">
 </p>
 
-> Raspberry Pi 4 mecanum hub + two Zippy/LARP differential-drive scouts + three camera feeds + one local browser dashboard.
+> A local-first multi-robot reconnaissance platform designed to help first responders gather situational awareness before personnel enter uncertain or hazardous areas.
 
-**3TSahur** is the Raspberry Pi 4 control hub. **LARP Scout A** and **LARP Scout B** are Zippy/ECHO ESP32-S3 differential-drive robots. Each LARP has its own Inland AI-Thinker-compatible ESP32-CAM. The Pi creates the local robot network, hosts the dashboard, controls 3TSahur, relays LARP video, and can optionally run YOLO11 Nano person detection.
+## Robot names and mission
+
+**3TSAHUR** stands for **Terrain Tandem Transport Semi-Autonomous Hub Unit for Reconnaissance**. It is the large Raspberry Pi 4 mecanum-drive robot and central control hub. The name reflects its job in the system: carrying the main compute, networking, camera, and coordination workload while serving as a stable mobile base for reconnaissance operations.
+
+**LARP** stands for **Lightweight Autonomous Reconnaissance Platform**. **LARP A** and **LARP B** are the two small Zippy/ECHO differential-drive scout robots. Their name reflects their intended role as lightweight forward scouts that can extend the team's view into areas that may be difficult, obstructed, or unsafe for responders to immediately enter.
+
+Together, **3TSAHUR + the LARPs** form a distributed first-responder reconnaissance system: 3TSAHUR acts as the central hub and mobile command node, while the LARPs provide smaller, more maneuverable remote viewpoints. The design goal is to give operators video, sensing, and remote-control capability that can improve situational awareness while keeping human responders in control of the mission.
+
+> [!NOTE]
+> `Zippy` and `ECHO` describe the underlying small-robot hardware platform/controller. The project names of the small robots are **LARP A** and **LARP B**.
 
 ## Start here
 
 ```mermaid
 flowchart LR
-    A["1 · Wire 3TSahur"] --> B["2 · Install Pi software"]
+    A["1 · Wire 3TSAHUR"] --> B["2 · Install Pi software"]
     B --> C["3 · Verify 2.4 GHz hotspot"]
     C --> D["4 · Flash LARP A"]
     D --> E["5 · Verify A drive + camera"]
@@ -28,9 +37,9 @@ flowchart LR
 
 | If you are... | Go here |
 | --- | --- |
-| Building the Pi mecanum robot | [3TSahur pinout](#3tsahur-pinout) |
+| Building the large mecanum robot | [3TSAHUR pinout](#3tsahur-pinout) |
 | Installing the Raspberry Pi | [Pi installation](#raspberry-pi-installation) |
-| Flashing a Zippy/LARP | [Flash the ZippyLARP devices](#flash-the-zippylarp-devices) |
+| Flashing a LARP | [Flash the LARP devices](#flash-the-larp-devices) |
 | Fixing Wi-Fi/WPA problems | [Wi-Fi + WPA2 troubleshooting](#wi-fi--wpa2-troubleshooting) |
 | Fixing camera problems | [Camera pairing visual](#camera-pairing-visual) |
 | Doing the first drive test | [First-boot verification](#first-boot-verification) |
@@ -38,7 +47,7 @@ flowchart LR
 ## Critical network requirement
 
 > [!IMPORTANT]
-> **Use a dedicated 2.4 GHz robot network.** The Raspberry Pi hotspot must be configured for **2.4 GHz**, and the Zippy/LARP ECHO and ESP32-CAM clients must use that same 2.4 GHz network. Do not configure `3TSahur-Swarm` as 5 GHz-only. For this validated deployment, keep the Pi robot hotspot fixed to 2.4 GHz rather than relying on dual-band or band-steering behavior.
+> **Use a dedicated 2.4 GHz robot network.** The Raspberry Pi hotspot must be configured for **2.4 GHz**, and the LARP ECHO and ESP32-CAM clients must use that same 2.4 GHz network. Do not configure the robot hotspot as 5 GHz-only. For this validated deployment, keep the Pi robot hotspot fixed to 2.4 GHz rather than relying on dual-band or band-steering behavior.
 
 | Network setting | Required project configuration |
 | --- | --- |
@@ -51,11 +60,13 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    PI["Raspberry Pi 4 hotspot\n2.4 GHz · channel 6\nWPA2-Personal / RSN"] <-->|"same SSID + password"| ZA["Zippy/LARP A\nECHO ESP32-S3"]
-    PI <-->|"same SSID + password"| ZB["Zippy/LARP B\nECHO ESP32-S3"]
+    PI["Raspberry Pi 4 hotspot\n2.4 GHz · channel 6\nWPA2-Personal / RSN"] <-->|"same SSID + password"| LA["LARP A\nECHO ESP32-S3"]
+    PI <-->|"same SSID + password"| LB["LARP B\nECHO ESP32-S3"]
     PI <-->|"same 2.4 GHz network"| CA["ESP32-CAM A"]
     PI <-->|"same 2.4 GHz network"| CB["ESP32-CAM B"]
 ```
+
+> The SSID remains `3TSahur-Swarm` for compatibility with the current deployed configuration. The display/project name is **3TSAHUR**.
 
 ## Raspberry Pi installation
 
@@ -95,9 +106,9 @@ The generated hotspot password is stored locally in:
 /etc/stem-research-academy/config.env
 ```
 
-Copy the same SSID/password into both Zippy/LARP ECHO sketches and both ESP32-CAM sketches. Never commit the generated password to GitHub.
+Copy the same SSID/password into both LARP ECHO sketches and both ESP32-CAM sketches. Never commit the generated password to GitHub.
 
-## 3TSahur pinout
+## 3TSAHUR pinout
 
 All GPIO numbers in the code are **BCM GPIO numbers**. The table below also gives the matching Raspberry Pi 40-pin header position so a builder can wire directly from the board.
 
@@ -171,23 +182,23 @@ Full details: [docs/WIRING.md](docs/WIRING.md) and [docs/SETUP.md](docs/SETUP.md
 
 ```mermaid
 flowchart TB
-    USER["Operator\nphone / tablet / laptop"] <-->|"browser dashboard"| PI["3TSahur\nRaspberry Pi 4\n10.42.0.1"]
-    PI -->|"USB"| C270["Logitech C270"]
-    PI -->|"GPIO"| D1["Dual motor driver 1"]
-    PI -->|"GPIO"| D2["Dual motor driver 2"]
+    USER["Operator\nphone / tablet / laptop"] <-->|"browser dashboard"| HUB["3TSAHUR\nRaspberry Pi 4\n10.42.0.1"]
+    HUB -->|"USB"| C270["Logitech C270"]
+    HUB -->|"GPIO"| D1["Dual motor driver 1"]
+    HUB -->|"GPIO"| D2["Dual motor driver 2"]
     D1 --> ML["Front-left + rear-left motors"]
     D2 --> MR["Front-right + rear-right motors"]
-    PI <-->|"2.4 GHz Wi-Fi"| ZA["Zippy/LARP A\nECHO controller"]
-    PI <-->|"2.4 GHz Wi-Fi"| ZB["Zippy/LARP B\nECHO controller"]
-    CA["ESP32-CAM A"] -->|"MJPEG + registration"| PI
-    CB["ESP32-CAM B"] -->|"MJPEG + registration"| PI
+    HUB <-->|"2.4 GHz Wi-Fi"| LA["LARP A\nECHO controller"]
+    HUB <-->|"2.4 GHz Wi-Fi"| LB["LARP B\nECHO controller"]
+    CA["ESP32-CAM A"] -->|"MJPEG + registration"| HUB
+    CB["ESP32-CAM B"] -->|"MJPEG + registration"| HUB
 ```
 
-## Flash the Zippy/LARP devices
+## Flash the LARP devices
 
 | Board | Firmware | Arduino profile | Configure |
 | --- | --- | --- | --- |
-| Zippy/LARP ECHO | [`firmware/larp-scout/larp-scout.ino`](firmware/larp-scout/larp-scout.ino) | **ESP32S3 Dev Module** | `ROBOT_ID`, SSID/password |
+| LARP ECHO controller | [`firmware/larp-scout/larp-scout.ino`](firmware/larp-scout/larp-scout.ino) | **ESP32S3 Dev Module** | `ROBOT_ID`, SSID/password |
 | Inland ESP32-CAM | [`firmware/larp-esp32-cam/larp-esp32-cam.ino`](firmware/larp-esp32-cam/larp-esp32-cam.ino) | **AI Thinker ESP32-CAM** | `CAMERA_ID`, SSID/password |
 
 Arduino baseline:
@@ -215,23 +226,23 @@ The ECHO drive controller and ESP32-CAM are **separate Wi-Fi clients**. They do 
 sequenceDiagram
     participant CAM as ESP32-CAM
     participant WIFI as 3TSahur-Swarm 2.4 GHz
-    participant PI as Raspberry Pi dashboard
+    participant HUB as 3TSAHUR dashboard
     participant WEB as Browser
     CAM->>WIFI: Join with WPA2-Personal credentials
     WIFI-->>CAM: DHCP address 10.42.0.x
-    CAM->>PI: Register CAMERA_ID + current IP
-    WEB->>PI: Open LARP A or B tab
-    PI->>CAM: Relay selected MJPEG stream
-    CAM-->>PI: Video frames
-    PI-->>WEB: /api/scouts/a|b/camera.mjpg
+    CAM->>HUB: Register CAMERA_ID + current IP
+    WEB->>HUB: Open LARP A or B tab
+    HUB->>CAM: Relay selected MJPEG stream
+    CAM-->>HUB: Video frames
+    HUB-->>WEB: /api/scouts/a|b/camera.mjpg
 ```
 
-A camera can be offline while its matching ECHO robot still drives. Troubleshoot camera and drive nodes separately.
+A camera can be offline while its matching LARP still drives. Troubleshoot camera and drive nodes separately.
 
 ## Wi-Fi + WPA2 troubleshooting
 
 > [!NOTE]
-> The **IPEX-1 connector and WPA2 are different layers**. WPA2 controls authentication/encryption. The IPEX-1 connector is part of the Zippy/ECHO radio antenna path. Correct WPA credentials will not fix a loose antenna, and reseating an antenna will not fix an incorrect password or security profile.
+> The **IPEX-1 connector and WPA2 are different layers**. WPA2 controls authentication/encryption. The IPEX-1 connector is part of the LARP ECHO radio antenna path. Correct WPA credentials will not fix a loose antenna, and reseating an antenna will not fix an incorrect password or security profile.
 
 ### What must match
 
@@ -241,14 +252,14 @@ flowchart TD
     P --> S["WPA2-Personal / wpa-psk"]
     P --> R["RSN"]
     P --> N["SSID + password"]
-    B --> Z["Zippy/ECHO joins"]
-    S --> Z
-    R --> Z
-    N --> Z
-    A["IPEX-1 antenna physically seated"] --> Z
+    B --> L["LARP/ECHO joins"]
+    S --> L
+    R --> L
+    N --> L
+    A["IPEX-1 antenna physically seated"] --> L
 ```
 
-With the Zippy powered **off**, inspect the IPEX-1 connector if the robot cannot reliably see the Pi hotspot, works only at very short range, or disconnects much more often than the other robot. Make sure the tiny plug is centered and fully seated; do not pry sideways on it.
+With the LARP powered **off**, inspect the IPEX-1 connector if the robot cannot reliably see the Pi hotspot, works only at very short range, or disconnects much more often than the other robot. Make sure the tiny plug is centered and fully seated; do not pry sideways on it.
 
 Check the Pi's non-secret Wi-Fi settings with:
 
@@ -271,10 +282,10 @@ Protocol:  rsn
 
 ```mermaid
 flowchart TD
-    A["Zippy will not connect"] --> B{"Can it see 3TSahur-Swarm?"}
+    A["LARP will not connect"] --> B{"Can it see 3TSahur-Swarm?"}
     B -- No --> C["Verify Pi hotspot is fixed to 2.4 GHz / channel 6"]
-    C --> D["Power Zippy OFF and inspect IPEX-1 antenna"]
-    B -- Yes --> E{"Does Zippy obtain 10.42.0.x?"}
+    C --> D["Power LARP OFF and inspect IPEX-1 antenna"]
+    B -- Yes --> E{"Does LARP obtain 10.42.0.x?"}
     E -- No --> F["Verify exact SSID/password + WPA2-PSK / RSN"]
     E -- Yes --> G{"Dashboard heartbeat?"}
     G -- No --> H["Check ROBOT_ID + dashboard service"]
@@ -287,9 +298,9 @@ flowchart TD
 | Symptom | Most likely area | First check |
 | --- | --- | --- |
 | Hotspot not visible at all | Pi hotspot/band | Confirm `bg`, channel 6, hotspot service |
-| Zippy sees SSID but never gets IP | WPA/credentials | Exact password, `wpa-psk`, `rsn` |
+| LARP sees SSID but never gets IP | WPA/credentials | Exact password, `wpa-psk`, `rsn` |
 | Works only inches from Pi | Antenna/RF | Power off; reseat IPEX-1, inspect lead |
-| One Zippy works, the other does not | Per-robot config/hardware | Compare ID, password, antenna, power |
+| One LARP works, the other does not | Per-robot config/hardware | Compare ID, password, antenna, power |
 | Gets IP but dashboard says offline | Registration/app | Check `ROBOT_ID` and dashboard service |
 | Camera offline but drive works | Camera node | Check ESP32-CAM power/ID/registration |
 
@@ -303,7 +314,7 @@ Full guide: **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 ┌─────────────────────────────────────────────────────────────┐
 │             3TSAHUR-SWARM LOCAL COMMAND CENTER             │
 ├─────────────────┬──────────────────┬────────────────────────┤
-│    3TSahur      │   LARP Scout A   │    LARP Scout B        │
+│     3TSAHUR     │      LARP A      │        LARP B          │
 ├─────────────────┴──────────────────┴────────────────────────┤
 │ Selected camera feed       │ Selected robot controls        │
 │ Snapshot / optional vision │ Speed / status / stop          │
@@ -314,10 +325,10 @@ Full guide: **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
 | Robot | Keys | Action |
 | --- | --- | --- |
-| 3TSahur | `W` / `S` | Forward / reverse |
-| 3TSahur | `A` / `D` | Strafe left / right |
-| 3TSahur | `Q` / `E` | Rotate left / right |
-| 3TSahur | `Space` | Stop 3TSahur |
+| 3TSAHUR | `W` / `S` | Forward / reverse |
+| 3TSAHUR | `A` / `D` | Strafe left / right |
+| 3TSAHUR | `Q` / `E` | Rotate left / right |
+| 3TSAHUR | `Space` | Stop 3TSAHUR |
 | LARP A | Arrow keys | Forward / reverse / left / right |
 | LARP B | `I` / `K` / `J` / `L` | Forward / reverse / left / right |
 | All | `Esc` | Emergency stop all |
@@ -379,7 +390,7 @@ Vision runs separately from the core control path and pauses during active robot
 STEM-Research-Academy/
 ├── robot_server/                 # Dashboard, motors, camera, scouts, vision
 ├── firmware/
-│   ├── larp-scout/               # Zippy/LARP ECHO firmware
+│   ├── larp-scout/               # LARP ECHO firmware
 │   └── larp-esp32-cam/           # ESP32-CAM firmware
 ├── installer/                    # Pi installer, hotspot and services
 ├── docs/                         # Setup and troubleshooting documentation
@@ -390,9 +401,10 @@ STEM-Research-Academy/
 
 ## Documentation
 
+- [Robot names](docs/ROBOT_NAMES.md) — canonical 3TSAHUR and LARP names and acronym expansions.
 - [Setup guide](docs/SETUP.md) — build, pinout, network setup and first-drive procedure.
-- [Troubleshooting guide](docs/TROUBLESHOOTING.md) — 2.4 GHz, WPA2/RSN, Zippy IPEX-1 antenna, power and heartbeat diagnosis.
-- [Wiring reference](docs/WIRING.md) — exact 3TSahur GPIO mapping.
+- [Troubleshooting guide](docs/TROUBLESHOOTING.md) — 2.4 GHz, WPA2/RSN, IPEX-1 antenna, power and heartbeat diagnosis.
+- [Wiring reference](docs/WIRING.md) — exact 3TSAHUR GPIO mapping.
 - [ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — AI Thinker upload wiring and camera pin map.
 - [LARP camera/controller integration](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md) — identity pairing and field testing.
 - [Latency tuning](docs/LATENCY_TUNING.md) — control-priority behavior.
@@ -407,8 +419,10 @@ STEM-Research-Academy/
 - Keep an accessible physical motor-power switch.
 - Verify the intended common logic ground.
 - Test `Space`, `Esc`, browser disconnect, and network-loss stopping before operating near people or property.
-- Power a Zippy/LARP off before inspecting or reseating its IPEX-1 antenna connector.
+- Power a LARP off before inspecting or reseating its IPEX-1 antenna connector.
+- Treat the platform as a reconnaissance aid, not a substitute for first-responder training, judgment, or established safety procedures.
 
 ---
 
-Built from the partner project's deployment/dashboard foundation and adapted for the 3TSahur hub and Zippy/LARP Scout system.
+**3TSAHUR — Terrain Tandem Transport Semi-Autonomous Hub Unit for Reconnaissance**  
+**LARP — Lightweight Autonomous Reconnaissance Platform**
