@@ -1,55 +1,53 @@
 # 3TSAHUR + LARP Reconnaissance Swarm
 
-<p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/control-Python_3.11%2B-3776AB?logo=python&logoColor=white">
-  <img alt="Raspberry Pi" src="https://img.shields.io/badge/hub-Raspberry_Pi_4-C51A4A?logo=raspberrypi&logoColor=white">
-  <img alt="ESP32" src="https://img.shields.io/badge/scouts-ECHO_%2B_ESP32--CAM-111111?logo=espressif&logoColor=white">
-  <img alt="Wi-Fi" src="https://img.shields.io/badge/robot_Wi--Fi-2.4_GHz_only-important">
-  <img alt="Security" src="https://img.shields.io/badge/security-WPA2--Personal%20%2F%20RSN-blue">
-  <img alt="Branch" src="https://img.shields.io/badge/production-main-success">
-</p>
-
 > A local-first multi-robot reconnaissance platform designed to help first responders gather situational awareness before personnel enter uncertain or hazardous areas.
 
 ## Robot names and mission
 
-**3TSAHUR** stands for **Terrain Tandem Transport Semi-Autonomous Hub Unit for Reconnaissance**. It is the large Raspberry Pi 4 mecanum-drive robot and central control hub. The name reflects its job in the system: carrying the main compute, networking, camera, and coordination workload while serving as a stable mobile base for reconnaissance operations.
+**3TSAHUR** — **Terrain Tandem Transport Semi-Autonomous Hub Unit for Reconnaissance** — is the large Raspberry Pi 4 mecanum-drive robot and central control hub. Its role is to carry the main compute, networking, camera, and coordination workload while serving as a stable mobile base for reconnaissance.
 
-**LARP** stands for **Lightweight Autonomous Reconnaissance Platform**. **LARP A** and **LARP B** are the two small Zippy/ECHO differential-drive scout robots. Their name reflects their intended role as lightweight forward scouts that can extend the team's view into areas that may be difficult, obstructed, or unsafe for responders to immediately enter.
+**LARP** — **Lightweight Autonomous Reconnaissance Platform** — is the project name for each small Zippy/ECHO differential-drive scout. **LARP A** and **LARP B** are intended as lightweight forward scouts that extend the operator's view into areas that may be obstructed, difficult to access, or unsafe for responders to immediately enter.
 
-Together, **3TSAHUR + the LARPs** form a distributed first-responder reconnaissance system: 3TSAHUR acts as the central hub and mobile command node, while the LARPs provide smaller, more maneuverable remote viewpoints. The design goal is to give operators video, sensing, and remote-control capability that can improve situational awareness while keeping human responders in control of the mission.
+Together, **3TSAHUR + the LARPs** form a distributed first-responder reconnaissance system. Human operators remain in control; autonomy and sensing are intended to improve situational awareness rather than replace responder judgment.
 
 > [!NOTE]
-> `Zippy` and `ECHO` describe the underlying small-robot hardware platform/controller. The project names of the small robots are **LARP A** and **LARP B**.
+> `Zippy` and `ECHO` describe the underlying small-robot hardware platform/controller. The project names are **LARP A** and **LARP B**. The existing SSID `3TSahur-Swarm` is retained for deployment compatibility even though the project/display name is **3TSAHUR**.
 
 ## Start here
 
 ```mermaid
 flowchart LR
-    A["1 · Wire 3TSAHUR"] --> B["2 · Install Pi software"]
-    B --> C["3 · Verify 2.4 GHz hotspot"]
-    C --> D["4 · Flash LARP A"]
-    D --> E["5 · Verify A drive + camera"]
-    E --> F["6 · Flash LARP B"]
-    F --> G["7 · Raised-wheel safety test"]
-    G --> H["8 · Low-speed floor test"]
+    A["Wire 3TSAHUR"] --> B["Install Pi software"]
+    B --> C["Verify 2.4 GHz hotspot"]
+    C --> D["Flash LARP A"]
+    D --> E["Verify A drive + camera"]
+    E --> F["Flash LARP B"]
+    F --> G["Raised-wheel safety test"]
+    G --> H["Low-speed field test"]
 ```
 
-| If you are... | Go here |
-| --- | --- |
-| Building the large mecanum robot | [3TSAHUR pinout](#3tsahur-pinout) |
-| Installing the Raspberry Pi | [Pi installation](#raspberry-pi-installation) |
-| Flashing a LARP | [Flash the LARP devices](#flash-the-larp-devices) |
-| Fixing Wi-Fi/WPA problems | [Wi-Fi + WPA2 troubleshooting](#wi-fi--wpa2-troubleshooting) |
-| Fixing camera problems | [Camera pairing visual](#camera-pairing-visual) |
-| Doing the first drive test | [First-boot verification](#first-boot-verification) |
+## Current system architecture
+
+```mermaid
+flowchart TB
+    USER["Operator\nphone / tablet / laptop"] <-->|"local dashboard"| HUB["3TSAHUR\nRaspberry Pi 4"]
+    HUB --> C270["Logitech C270"]
+    HUB --> D1["Dual motor driver 1"]
+    HUB --> D2["Dual motor driver 2"]
+    HUB <-->|"2.4 GHz Wi-Fi"| LA["LARP A\nECHO controller"]
+    HUB <-->|"2.4 GHz Wi-Fi"| LB["LARP B\nECHO controller"]
+    CA["ESP32-CAM A"] --> HUB
+    CB["ESP32-CAM B"] --> HUB
+```
+
+Current design priorities are reliable manual control, independent robot/camera failure isolation, a local browser UI, a control watchdog, optional vision, and a simple network that can operate without internet access after setup.
 
 ## Critical network requirement
 
 > [!IMPORTANT]
-> **Use a dedicated 2.4 GHz robot network.** The Raspberry Pi hotspot must be configured for **2.4 GHz**, and the LARP ECHO and ESP32-CAM clients must use that same 2.4 GHz network. Do not configure the robot hotspot as 5 GHz-only. For this validated deployment, keep the Pi robot hotspot fixed to 2.4 GHz rather than relying on dual-band or band-steering behavior.
+> **Use a dedicated 2.4 GHz robot network.** The Raspberry Pi hotspot and the LARP ECHO/ESP32-CAM clients must use the same **2.4 GHz** network. Do not deploy this configuration as 5 GHz-only or rely on dual-band/band-steering behavior.
 
-| Network setting | Required project configuration |
+| Setting | Project configuration |
 | --- | --- |
 | SSID | `3TSahur-Swarm` |
 | Band | **2.4 GHz only** |
@@ -60,25 +58,21 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    PI["Raspberry Pi 4 hotspot\n2.4 GHz · channel 6\nWPA2-Personal / RSN"] <-->|"same SSID + password"| LA["LARP A\nECHO ESP32-S3"]
-    PI <-->|"same SSID + password"| LB["LARP B\nECHO ESP32-S3"]
-    PI <-->|"same 2.4 GHz network"| CA["ESP32-CAM A"]
-    PI <-->|"same 2.4 GHz network"| CB["ESP32-CAM B"]
+    PI["Pi hotspot\n2.4 GHz · ch 6\nWPA2 / RSN"] <-->|"same credentials"| A["LARP A"]
+    PI <-->|"same credentials"| B["LARP B"]
+    PI <-->|"same network"| CA["CAM A"]
+    PI <-->|"same network"| CB["CAM B"]
 ```
-
-> The SSID remains `3TSahur-Swarm` for compatibility with the current deployed configuration. The display/project name is **3TSAHUR**.
 
 ## Raspberry Pi installation
 
-Production installs use **`main`**. The `merge` branch is retained for development/integration work; if you intentionally want that branch, explicitly set `STEM_REPO_BRANCH=merge`.
-
-Install the production build as the normal Pi user:
+Production installs use `main`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/curl-install.sh | bash
 ```
 
-Or clone it first:
+Or:
 
 ```bash
 git clone https://github.com/william-thompsonthe1st/STEM-Research-Academy.git
@@ -87,273 +81,79 @@ git checkout main
 bash installer/install.sh
 ```
 
-<details>
-<summary><strong>Install the merge branch instead</strong></summary>
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/curl-install.sh | STEM_REPO_BRANCH=merge bash
-```
-
-Use this only when you intentionally want to test the integration branch.
-
-</details>
-
-After reboot, join `3TSahur-Swarm` and open `http://10.42.0.1` or `http://3tsahur.local` when mDNS is available.
-
-The generated hotspot password is stored locally in:
-
-```text
-/etc/stem-research-academy/config.env
-```
-
-Copy the same SSID/password into both LARP ECHO sketches and both ESP32-CAM sketches. Never commit the generated password to GitHub.
+After reboot, join `3TSahur-Swarm` and open `http://10.42.0.1` or `http://3tsahur.local` when mDNS is available. The generated hotspot password is stored in `/etc/stem-research-academy/config.env`; copy the same SSID/password into both LARP ECHO sketches and both ESP32-CAM sketches, and never commit the password.
 
 ## 3TSAHUR pinout
 
-All GPIO numbers in the code are **BCM GPIO numbers**. The table below also gives the matching Raspberry Pi 40-pin header position so a builder can wire directly from the board.
-
-### Signal map
+The code uses **BCM GPIO numbering**.
 
 ```mermaid
 flowchart LR
-    PI["Raspberry Pi 4\nBCM GPIO"]
-    PI -->|"GPIO 5 → physical 29\nGPIO 6 → physical 31"| FL["Driver 1 · IN1/IN2\nFront Left"]
-    PI -->|"GPIO 16 → physical 36\nGPIO 19 → physical 35"| RL["Driver 1 · IN3/IN4\nRear Left"]
-    PI -->|"GPIO 20 → physical 38\nGPIO 21 → physical 40"| FR["Driver 2 · IN1/IN2\nFront Right"]
-    PI -->|"GPIO 13 → physical 33\nGPIO 26 → physical 37"| RR["Driver 2 · IN3/IN4\nRear Right"]
+    PI["Raspberry Pi 4"] -->|"GPIO 5 / 6"| FL["Driver 1\nFront Left"]
+    PI -->|"GPIO 16 / 19"| RL["Driver 1\nRear Left"]
+    PI -->|"GPIO 20 / 21"| FR["Driver 2\nFront Right"]
+    PI -->|"GPIO 13 / 26"| RR["Driver 2\nRear Right"]
 ```
 
-### Raspberry Pi header visual
-
-```text
-Relevant lower section of the Raspberry Pi 4 40-pin header
-(physical pin numbers shown at the outside)
-
-                 Raspberry Pi 4 header
-              ┌────────────────────────┐
- physical 29  │ GPIO5   ●  ●   GND     │ 30
- physical 31  │ GPIO6   ●  ●   GPIO12  │ 32
- physical 33  │ GPIO13  ●  ●   GND     │ 34
- physical 35  │ GPIO19  ●  ●   GPIO16  │ 36
- physical 37  │ GPIO26  ●  ●   GPIO20  │ 38
- physical 39  │ GND     ●  ●   GPIO21  │ 40
-              └────────────────────────┘
-
-Use BCM numbers in software; use the physical numbers above while wiring.
-```
-
-### Motor-driver wiring visual
-
-```text
-              3TSAHUR MOTOR CONTROL WIRING
-
-Raspberry Pi 4                  Driver 1                 Motors
-──────────────                  ────────                 ──────
-GPIO5  (pin 29) ──────────────► IN1  ┐
-GPIO6  (pin 31) ──────────────► IN2  ├───────────────► Front Left
-GPIO16 (pin 36) ──────────────► IN3  ┤
-GPIO19 (pin 35) ──────────────► IN4  ┘───────────────► Rear Left
-
-Raspberry Pi 4                  Driver 2                 Motors
-──────────────                  ────────                 ──────
-GPIO20 (pin 38) ──────────────► IN1  ┐
-GPIO21 (pin 40) ──────────────► IN2  ├───────────────► Front Right
-GPIO13 (pin 33) ──────────────► IN3  ┤
-GPIO26 (pin 37) ──────────────► IN4  ┘───────────────► Rear Right
-
-Pi GND ───────────────────────► driver logic/common ground
-External fused motor supply ─► motor-driver power input
-                               NEVER power drive motors from Pi 5 V
-```
-
-| Wheel | Driver | BCM GPIO pair | Physical Pi pins |
+| Wheel | Driver inputs | BCM GPIO | Physical pins |
 | --- | --- | --- | --- |
-| Front left | Driver 1, IN1/IN2 | `5 / 6` | `29 / 31` |
-| Rear left | Driver 1, IN3/IN4 | `16 / 19` | `36 / 35` |
-| Front right | Driver 2, IN1/IN2 | `20 / 21` | `38 / 40` |
-| Rear right | Driver 2, IN3/IN4 | `13 / 26` | `33 / 37` |
+| Front left | Driver 1 IN1/IN2 | `5 / 6` | `29 / 31` |
+| Rear left | Driver 1 IN3/IN4 | `16 / 19` | `36 / 35` |
+| Front right | Driver 2 IN1/IN2 | `20 / 21` | `38 / 40` |
+| Rear right | Driver 2 IN3/IN4 | `13 / 26` | `33 / 37` |
+
+```text
+Raspberry Pi 4 relevant header pins
+
+29 GPIO5   ●  ● GND    30
+31 GPIO6   ●  ● GPIO12 32
+33 GPIO13  ●  ● GND    34
+35 GPIO19  ●  ● GPIO16 36
+37 GPIO26  ●  ● GPIO20 38
+39 GND     ●  ● GPIO21 40
+```
 
 > [!WARNING]
-> Do not reuse one Pi GPIO across multiple driver inputs. Keep the wheels raised for the first direction test, use a fused external motor supply, and maintain the intended common logic ground.
+> Use a correctly rated fused external motor supply. Never power the drive motors from the Pi 5 V rail. Maintain the intended common logic ground and perform the first direction test with the wheels raised.
 
-Full details: [docs/WIRING.md](docs/WIRING.md) and [docs/SETUP.md](docs/SETUP.md).
+See [docs/WIRING.md](docs/WIRING.md) and [docs/SETUP.md](docs/SETUP.md).
 
-## System architecture
+## LARP firmware and camera pairing
 
-```mermaid
-flowchart TB
-    USER["Operator\nphone / tablet / laptop"] <-->|"browser dashboard"| HUB["3TSAHUR\nRaspberry Pi 4\n10.42.0.1"]
-    HUB -->|"USB"| C270["Logitech C270"]
-    HUB -->|"GPIO"| D1["Dual motor driver 1"]
-    HUB -->|"GPIO"| D2["Dual motor driver 2"]
-    D1 --> ML["Front-left + rear-left motors"]
-    D2 --> MR["Front-right + rear-right motors"]
-    HUB <-->|"2.4 GHz Wi-Fi"| LA["LARP A\nECHO controller"]
-    HUB <-->|"2.4 GHz Wi-Fi"| LB["LARP B\nECHO controller"]
-    CA["ESP32-CAM A"] -->|"MJPEG + registration"| HUB
-    CB["ESP32-CAM B"] -->|"MJPEG + registration"| HUB
-```
-
-## Flash the LARP devices
-
-| Board | Firmware | Arduino profile | Configure |
+| Device | Firmware | Arduino profile | Identity |
 | --- | --- | --- | --- |
-| LARP ECHO controller | [`firmware/larp-scout/larp-scout.ino`](firmware/larp-scout/larp-scout.ino) | **ESP32S3 Dev Module** | `ROBOT_ID`, SSID/password |
-| Inland ESP32-CAM | [`firmware/larp-esp32-cam/larp-esp32-cam.ino`](firmware/larp-esp32-cam/larp-esp32-cam.ino) | **AI Thinker ESP32-CAM** | `CAMERA_ID`, SSID/password |
-
-Arduino baseline:
-
-- `esp32 by Espressif Systems` 3.0.7
-- 3DBuffalo EchoLib 1.3.0
-- Adafruit BusIO
-- Serial Monitor at 115200 baud
-
-### Identity pairing visual
+| LARP ECHO controller | `firmware/larp-scout/larp-scout.ino` | ESP32S3 Dev Module | `ROBOT_ID=A/B` |
+| Inland ESP32-CAM | `firmware/larp-esp32-cam/larp-esp32-cam.ino` | AI Thinker ESP32-CAM | `CAMERA_ID=A/B` |
 
 ```mermaid
 flowchart LR
-    A["LARP A"] --> EA["ECHO\nROBOT_ID = A"]
-    A --> CA["ESP32-CAM\nCAMERA_ID = A"]
-    B["LARP B"] --> EB["ECHO\nROBOT_ID = B"]
-    B --> CB["ESP32-CAM\nCAMERA_ID = B"]
+    A["LARP A"] --> EA["ECHO · ROBOT_ID=A"]
+    A --> CA["CAM · CAMERA_ID=A"]
+    B["LARP B"] --> EB["ECHO · ROBOT_ID=B"]
+    B --> CB["CAM · CAMERA_ID=B"]
 ```
 
-The ECHO drive controller and ESP32-CAM are **separate Wi-Fi clients**. They do not need a GPIO connection to each other. Their matching A/A or B/B IDs tell the Pi which drive controller and camera belong together.
+The ECHO controller and ESP32-CAM are separate Wi-Fi clients; they do not require a GPIO connection to each other. Matching IDs pair the drive controller and camera in the dashboard.
 
-## Camera pairing visual
+## Wi-Fi, WPA2, and IPEX-1 troubleshooting
 
-```mermaid
-sequenceDiagram
-    participant CAM as ESP32-CAM
-    participant WIFI as 3TSahur-Swarm 2.4 GHz
-    participant HUB as 3TSAHUR dashboard
-    participant WEB as Browser
-    CAM->>WIFI: Join with WPA2-Personal credentials
-    WIFI-->>CAM: DHCP address 10.42.0.x
-    CAM->>HUB: Register CAMERA_ID + current IP
-    WEB->>HUB: Open LARP A or B tab
-    HUB->>CAM: Relay selected MJPEG stream
-    CAM-->>HUB: Video frames
-    HUB-->>WEB: /api/scouts/a|b/camera.mjpg
-```
-
-A camera can be offline while its matching LARP still drives. Troubleshoot camera and drive nodes separately.
-
-## Wi-Fi + WPA2 troubleshooting
-
-> [!NOTE]
-> The **IPEX-1 connector and WPA2 are different layers**. WPA2 controls authentication/encryption. The IPEX-1 connector is part of the LARP ECHO radio antenna path. Correct WPA credentials will not fix a loose antenna, and reseating an antenna will not fix an incorrect password or security profile.
-
-### What must match
+The **IPEX-1 antenna connector and WPA2 are separate layers**. WPA2 handles authentication/encryption; IPEX-1 is part of the radio antenna path. Correct credentials cannot compensate for a loose antenna, and reseating an antenna cannot correct the wrong WPA profile.
 
 ```mermaid
 flowchart TD
-    P["Pi hotspot"] --> B["2.4 GHz · channel 6"]
-    P --> S["WPA2-Personal / wpa-psk"]
-    P --> R["RSN"]
-    P --> N["SSID + password"]
-    B --> L["LARP/ECHO joins"]
-    S --> L
-    R --> L
-    N --> L
-    A["IPEX-1 antenna physically seated"] --> L
-```
-
-With the LARP powered **off**, inspect the IPEX-1 connector if the robot cannot reliably see the Pi hotspot, works only at very short range, or disconnects much more often than the other robot. Make sure the tiny plug is centered and fully seated; do not pry sideways on it.
-
-Check the Pi's non-secret Wi-Fi settings with:
-
-```bash
-nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel connection show stem-robot-hotspot
-nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connection show stem-robot-hotspot
-```
-
-Expected values:
-
-```text
-SSID:      3TSahur-Swarm
-Band:      bg (2.4 GHz)
-Channel:   6
-Key mgmt:  wpa-psk
-Protocol:  rsn
-```
-
-### Wi-Fi fault-isolation visual
-
-```mermaid
-flowchart TD
-    A["LARP will not connect"] --> B{"Can it see 3TSahur-Swarm?"}
-    B -- No --> C["Verify Pi hotspot is fixed to 2.4 GHz / channel 6"]
-    C --> D["Power LARP OFF and inspect IPEX-1 antenna"]
-    B -- Yes --> E{"Does LARP obtain 10.42.0.x?"}
-    E -- No --> F["Verify exact SSID/password + WPA2-PSK / RSN"]
+    A["LARP will not connect"] --> B{"Can it see the SSID?"}
+    B -- No --> C["Verify Pi is 2.4 GHz / channel 6"]
+    C --> D["Power LARP off; inspect IPEX-1 antenna"]
+    B -- Yes --> E{"Gets 10.42.0.x address?"}
+    E -- No --> F["Verify SSID/password + WPA2-PSK / RSN"]
     E -- Yes --> G{"Dashboard heartbeat?"}
     G -- No --> H["Check ROBOT_ID + dashboard service"]
-    G -- Yes --> I["Wi-Fi path is healthy"]
+    G -- Yes --> I["Network path healthy"]
 ```
 
-<details>
-<summary><strong>Common WPA / antenna symptoms</strong></summary>
-
-| Symptom | Most likely area | First check |
-| --- | --- | --- |
-| Hotspot not visible at all | Pi hotspot/band | Confirm `bg`, channel 6, hotspot service |
-| LARP sees SSID but never gets IP | WPA/credentials | Exact password, `wpa-psk`, `rsn` |
-| Works only inches from Pi | Antenna/RF | Power off; reseat IPEX-1, inspect lead |
-| One LARP works, the other does not | Per-robot config/hardware | Compare ID, password, antenna, power |
-| Gets IP but dashboard says offline | Registration/app | Check `ROBOT_ID` and dashboard service |
-| Camera offline but drive works | Camera node | Check ESP32-CAM power/ID/registration |
-
-</details>
-
-Full guide: **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
-
-## Dashboard controls
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│             3TSAHUR-SWARM LOCAL COMMAND CENTER             │
-├─────────────────┬──────────────────┬────────────────────────┤
-│     3TSAHUR     │      LARP A      │        LARP B          │
-├─────────────────┴──────────────────┴────────────────────────┤
-│ Selected camera feed       │ Selected robot controls        │
-│ Snapshot / optional vision │ Speed / status / stop          │
-├────────────────────────────┴─────────────────────────────────┤
-│ STOP ALL (Esc) · health · CSI · timeline · gamepad         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-| Robot | Keys | Action |
-| --- | --- | --- |
-| 3TSAHUR | `W` / `S` | Forward / reverse |
-| 3TSAHUR | `A` / `D` | Strafe left / right |
-| 3TSAHUR | `Q` / `E` | Rotate left / right |
-| 3TSAHUR | `Space` | Stop 3TSAHUR |
-| LARP A | Arrow keys | Forward / reverse / left / right |
-| LARP B | `I` / `K` / `J` / `L` | Forward / reverse / left / right |
-| All | `Esc` | Emergency stop all |
-
-The Pi drivetrain watchdog is 200 ms. Releasing controls, losing the client, or missing command refreshes stops motion.
+With the LARP powered off, inspect the IPEX-1 connection if the robot has unusually poor range, cannot reliably see the hotspot, or disconnects much more often than the other LARP. See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for the full diagnostic procedure.
 
 ## First-boot verification
-
-```mermaid
-flowchart TD
-    P["Pi boots"] --> H{"2.4 GHz hotspot visible?"}
-    H -- No --> HS["Check hotspot service + band"]
-    H -- Yes --> D{"Dashboard opens?"}
-    D -- No --> DS["Check dashboard service"]
-    D -- Yes --> C{"C270 works?"}
-    C -- Yes --> A["Power LARP A only"]
-    A --> AH{"A heartbeat + camera?"}
-    AH -- Yes --> AT["Raised-wheel A drive test"]
-    AT --> B["Repeat for LARP B"]
-    B --> ALL["Test Space + Esc + network-loss stop"]
-    ALL --> FLOOR["Low-speed floor test"]
-```
-
-<details>
-<summary><strong>First-boot command checklist</strong></summary>
 
 ```bash
 sudo systemctl status stem-robot-hotspot --no-pager
@@ -363,66 +163,117 @@ nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel conne
 nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connection show stem-robot-hotspot
 ```
 
-Pass conditions:
+Verify hotspot → dashboard → C270 → LARP A → LARP B → emergency stop/network-loss stopping, in that order. Power and test one scout at a time before testing the full system.
 
-- hotspot is visible as `3TSahur-Swarm`;
-- band reports `bg` and channel `6`;
-- security reports `wpa-psk` and `rsn`;
-- dashboard health endpoint succeeds;
-- only then power one LARP at a time and verify its heartbeat.
+## Future research and recommended improvements
 
-</details>
+The current platform is a strong teleoperated research baseline, but a first-responder reconnaissance system can be improved substantially. Future work should be measured against three questions: **Does it increase useful situational awareness? Does it make the system more reliable in degraded environments? Does it reduce operator workload without removing meaningful human control?**
+
+```mermaid
+flowchart LR
+    NOW["Current platform"] --> SENSE["Better sensing"]
+    NOW --> NAV["Localization + autonomy"]
+    NOW --> NET["Resilient communications"]
+    NOW --> ROBUST["Rugged hardware"]
+    NOW --> AI["Edge AI"]
+    NOW --> HUMAN["Responder-centered UI"]
+    SENSE --> FIELD["Field validation"]
+    NAV --> FIELD
+    NET --> FIELD
+    ROBUST --> FIELD
+    AI --> FIELD
+    HUMAN --> FIELD
+```
+
+### 1. Localization, mapping, and navigation
+
+The current system is primarily operator-driven. A major research direction is adding wheel encoders and an IMU to 3TSAHUR and the LARPs, then evaluating odometry, visual-inertial odometry, or SLAM. LiDAR, depth cameras, or stereo vision could provide obstacle geometry and improve navigation where GPS is unavailable. Useful semi-autonomous functions would include assisted obstacle avoidance, return-to-home, waypoint driving, automatic stopping near hazards, and maintaining a safe communications link. These should remain overrideable by the operator.
+
+### 2. Sensor fusion for first-responder reconnaissance
+
+RGB video alone cannot characterize many hazards. Future sensor packages could investigate thermal imaging, depth sensing, ambient temperature/humidity, smoke/particulate sensing, carbon monoxide or other appropriately calibrated gas sensing, microphone/audio, light level, and structural/vibration measurements. Research should focus on fusing these sources into a simple operator display rather than overwhelming the user with raw telemetry. Any safety-critical environmental sensor would require proper calibration and should not be treated as certified life-safety equipment without appropriate validation.
+
+### 3. CSI human-presence research
+
+Wi-Fi Channel State Information is particularly interesting because it could complement cameras when visibility is poor or a person is partially occluded. Future work should collect controlled CSI datasets across different rooms, wall materials, robot orientations, distances, antenna positions, moving machinery, and numbers of occupants. Performance should be reported with false-positive/false-negative rates rather than only demonstration accuracy. Combining CSI with thermal/RGB/depth observations could be compared against CSI alone.
+
+### 4. Communications resilience
+
+The fixed 2.4 GHz hotspot is appropriate for the current ECHO/ESP32 deployment, but it is also a single communications dependency. Future versions could study a dedicated second radio on 3TSAHUR, external antennas, better antenna placement, automatic channel selection, mesh or relay nodes, store-and-forward telemetry, and a separate high-bandwidth backhaul where compatible hardware is available. The control channel should remain isolated from bandwidth-heavy video/AI traffic. Research should measure latency, packet loss, range, recovery time, and emergency-stop behavior under congestion and partial link failure.
+
+### 5. Closed-loop drivetrain control
+
+The present GPIO motor interface is simple and effective for prototyping, but encoders and current sensing would enable closed-loop wheel-speed control, more repeatable mecanum motion, stall detection, traction analysis, and better odometry. Future motor electronics could add hardware PWM, per-channel current measurement, thermal monitoring, and protection appropriate to the selected motors and battery system.
+
+### 6. Power and endurance
+
+Add battery voltage/current telemetry and log energy use by drivetrain, cameras, Wi-Fi, and AI workloads. This would make it possible to estimate mission time instead of relying on a simple battery percentage guess. Future research could compare battery chemistry/capacity, regulated power architecture, swappable packs, low-voltage shutdown behavior, and whether the LARPs can return to 3TSAHUR or a charging point before reaching a critical battery level.
+
+### 7. Edge AI and perception
+
+YOLO11 Nano provides a useful starting point for local perception. Future experiments could compare NCNN, TensorFlow Lite, ONNX/runtime alternatives, or dedicated accelerators while measuring inference latency, power consumption, CPU temperature, video latency, and control responsiveness. Detection should expand only when it supports a clear responder task—for example person detection, doorway/egress identification, hazard-marker recognition, or change detection. AI output should be presented as decision support with confidence/uncertainty, not as guaranteed truth.
+
+### 8. Multi-robot coordination
+
+With two LARPs and a central hub, the project can study coordinated reconnaissance. Examples include assigning scouts to different rooms, automatically maintaining radio coverage, sharing a common map, avoiding duplicate exploration, and handing off camera/sensor observations between robots. A useful research question is how much coordination can be automated before the interface becomes harder for one responder to supervise.
+
+### 9. Mechanical ruggedization
+
+Future chassis work should evaluate impact protection, cable strain relief, connector retention, antenna protection, wheel guards, camera protection, dust/water resistance, thermal management, and serviceability. The LARP IPEX-1 connection deserves particular attention because a mechanically protected antenna installation could reduce field failures. 3TSAHUR could also be evaluated for payload mounting, sensor mast/gimbal designs, ramps, and modular sensor bays.
+
+### 10. Human factors and dashboard design
+
+A technically capable robot can still fail operationally if its interface creates too much cognitive load. Conduct timed user studies with representative tasks: select a robot, identify a target, recover from a lost camera, recognize a low battery, issue an emergency stop, and determine which robot produced an observation. Compare keyboard, touchscreen, and gamepad control; test large status indicators, map views, alert prioritization, and accessibility in gloves/low-light conditions.
+
+### 11. Reliability, cybersecurity, and failure testing
+
+Future research should intentionally test failure modes: camera loss, scout reboot, Pi service restart, corrupted/late commands, Wi-Fi congestion, low battery, sensor failure, stalled motors, and loss of the operator browser. Add structured logging and mission replay so failures can be reproduced. Security work could include device authentication beyond a shared WLAN password, credential rotation, signed firmware/software releases, least-privilege services, and protection of recorded mission data.
+
+### 12. Field-validation methodology
+
+The most important next step is repeatable testing rather than simply adding features. Build a test matrix covering open rooms, hallways, corners, multiple floors, obstacles, low light, smoke-like visual obstruction using safe test methods, RF interference, and increasing robot-to-hub distance. Record command latency, video latency, packet loss, reconnection time, battery endurance, detection accuracy, operator task time, and failure-recovery success. Comparing each hardware/software change against the same baseline will show whether it actually improves the reconnaissance mission.
+
+### Suggested research priority
+
+| Priority | Research area | Why it matters |
+| --- | --- | --- |
+| 1 | Reliability + field test instrumentation | Establishes trustworthy baseline data |
+| 2 | Encoders/IMU + battery telemetry | Improves control, localization, and mission awareness |
+| 3 | Communications resilience | Directly affects control/video availability |
+| 4 | Thermal/depth/environmental sensing | Adds information responders cannot get from RGB alone |
+| 5 | CSI validation + sensor fusion | Tests the project's distinctive non-camera sensing concept |
+| 6 | SLAM + assisted navigation | Reduces workload in complex environments |
+| 7 | Edge-AI optimization | Adds perception without sacrificing control latency |
+| 8 | Multi-robot autonomy | Builds on a reliable, measured lower-level system |
+
+The recommended research strategy is **instrument first, establish a baseline, change one subsystem at a time, and compare measured results**. That approach makes the project useful not only as a robot demonstration but as a reproducible research platform.
 
 ## Optional vision
 
-Only add optional vision after drive, stop, hotspot, and camera behavior are stable:
+After drive, stop, hotspot, and camera behavior are stable:
 
 ```bash
 cd ~/STEMResearchAcademy
 bash installer/install-vision.sh
 ```
 
-Vision runs separately from the core control path and pauses during active robot motion. See [docs/VISION_SETUP.md](docs/VISION_SETUP.md).
-
-## Project structure
-
-```text
-STEM-Research-Academy/
-├── robot_server/                 # Dashboard, motors, camera, scouts, vision
-├── firmware/
-│   ├── larp-scout/               # LARP ECHO firmware
-│   └── larp-esp32-cam/           # ESP32-CAM firmware
-├── installer/                    # Pi installer, hotspot and services
-├── docs/                         # Setup and troubleshooting documentation
-├── tests/                        # Hardware-independent tests
-├── run.py
-└── requirements.txt
-```
+Optional vision is isolated from the core control path and should pause during active robot motion so perception work does not compromise command responsiveness. See [docs/VISION_SETUP.md](docs/VISION_SETUP.md).
 
 ## Documentation
 
-- [Robot names](docs/ROBOT_NAMES.md) — canonical 3TSAHUR and LARP names and acronym expansions.
-- [Setup guide](docs/SETUP.md) — build, pinout, network setup and first-drive procedure.
-- [Troubleshooting guide](docs/TROUBLESHOOTING.md) — 2.4 GHz, WPA2/RSN, IPEX-1 antenna, power and heartbeat diagnosis.
+- [Setup guide](docs/SETUP.md) — build, network setup, and first-drive procedure.
+- [Troubleshooting guide](docs/TROUBLESHOOTING.md) — 2.4 GHz, WPA2/RSN, IPEX-1, power, and heartbeat diagnosis.
 - [Wiring reference](docs/WIRING.md) — exact 3TSAHUR GPIO mapping.
 - [ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — AI Thinker upload wiring and camera pin map.
 - [LARP camera/controller integration](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md) — identity pairing and field testing.
 - [Latency tuning](docs/LATENCY_TUNING.md) — control-priority behavior.
 - [Vision setup](docs/VISION_SETUP.md) — optional YOLO11 Nano / NCNN installation.
-- [Simulation results](docs/SIMULATION_RESULTS.md) — software test coverage and limitations.
+- [Robot naming](docs/ROBOT_NAMES.md) — canonical project names and acronym expansions.
 
 ## Safety
 
-- Test every direction with wheels clear of the floor first.
-- Disconnect motor power while wiring or flashing electronics.
-- Use a fused external motor supply; never power drive motors from the Pi.
-- Keep an accessible physical motor-power switch.
-- Verify the intended common logic ground.
-- Test `Space`, `Esc`, browser disconnect, and network-loss stopping before operating near people or property.
-- Power a LARP off before inspecting or reseating its IPEX-1 antenna connector.
-- Treat the platform as a reconnaissance aid, not a substitute for first-responder training, judgment, or established safety procedures.
+Test every direction with the wheels clear of the floor first. Disconnect motor power while wiring or flashing electronics. Use a fused external motor supply and an accessible physical motor-power switch. Verify the intended common logic ground. Test emergency stop, browser disconnect, and network-loss stopping before operating near people or property. Power a LARP off before inspecting or reseating its IPEX-1 antenna connector.
 
 ---
 
-**3TSAHUR — Terrain Tandem Transport Semi-Autonomous Hub Unit for Reconnaissance**  
-**LARP — Lightweight Autonomous Reconnaissance Platform**
+Built as a research platform for distributed robotic reconnaissance and first-responder situational awareness.
