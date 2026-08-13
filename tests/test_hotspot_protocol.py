@@ -6,8 +6,8 @@ ROOT = pathlib.Path(__file__).parents[1]
 HOTSPOT = (ROOT / "installer" / "hotspot.sh").read_text(encoding="utf-8")
 BOOTSTRAP = (ROOT / "installer" / "curl-install.sh").read_text(encoding="utf-8")
 INSTALLER = (ROOT / "installer" / "install.sh").read_text(encoding="utf-8")
-CAMERA = (ROOT / "firmware" / "larp-esp32-cam" / "larp_esp32_cam.ino").read_text(encoding="utf-8")
-SCOUT = (ROOT / "firmware" / "larp-scout" / "larp_scout_controller.ino").read_text(encoding="utf-8")
+CAMERA = (ROOT / "firmware" / "larp-esp32-cam" / "larp-esp32-cam.ino").read_text(encoding="utf-8")
+SCOUT = (ROOT / "firmware" / "larp-scout" / "larp-scout.ino").read_text(encoding="utf-8")
 LEGACY_SHARED_PASSWORD = "robo" + "swarm1"
 
 

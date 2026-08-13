@@ -2,9 +2,12 @@
 
 Date: 2026-08-12
 
-The integration base and the 3TSahur/LARP updates were compiled with Python.
-All 58 hardware-independent tests passed in an isolated desktop virtual
-environment with the repository's Flask dependency installed.
+The integration base and the 3TSahur/LARP updates were checked with the
+repository's hardware-independent Python test suite. Firmware source was also
+verified in Arduino against the actual ECHO and Inland board profiles; see
+**Arduino firmware verification** below.
+
+The current suite completed with **73 passing tests**.
 
 | Group | Checks | Result |
 | --- | ---: | --- |
@@ -19,6 +22,22 @@ environment with the repository's Flask dependency installed.
 The test harness uses fake GPIO/PWM implementations and mocked network/camera
 interfaces. It verifies the partner-base forward pins `5, 16, 20, 13` and
 reverse pins `6, 19, 21, 26` for the four mecanum wheels.
+
+## Arduino firmware verification
+
+On 2026-08-12, the two LARP sketches were verified with `esp32 by Espressif
+Systems 3.0.7`:
+
+| Firmware | Arduino board profile | Result |
+| --- | --- | --- |
+| `firmware/larp-scout/larp-scout.ino` | `ESP32S3 Dev Module` | verified; 985,685 bytes flash (75%), 45,696 bytes RAM (13%) |
+| `firmware/larp-esp32-cam/larp-esp32-cam.ino` | `AI Thinker ESP32-CAM` | verified; 1,056,961 bytes flash (33%), 51,580 bytes RAM (15%) |
+
+The ECHO verification used EchoLib 1.3.0 and Adafruit BusIO. The primary
+`.ino` names now match their sketch directories, eliminating Arduino's
+pre-compile `main file missing from sketch` fatal error. This validation checks
+the code and board definitions; a physical upload still requires the correct
+USB/bootloader procedure on each actual board.
 
 ## Control-path timing simulation
 

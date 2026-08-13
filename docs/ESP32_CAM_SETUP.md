@@ -20,7 +20,7 @@ browser.
 ## Camera board pin map used by the firmware
 
 The following assignments are already encoded in
-`firmware/larp-esp32-cam/larp_esp32_cam.ino`.
+`firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 
 | Camera signal | ESP32-CAM GPIO |
 | --- | ---: |
@@ -37,7 +37,8 @@ the resulting MJPEG stream over Wi-Fi.
 
 ## Flash each camera
 
-1. Install Arduino IDE and the **esp32 by Espressif Systems** board package.
+1. Install Arduino IDE and the **esp32 by Espressif Systems 3.0.7** board
+   package. This is the version used to verify this sketch.
 2. Connect a USB-to-serial adapter for flashing:
 
    | USB-to-serial adapter | ESP32-CAM |
@@ -51,7 +52,7 @@ the resulting MJPEG stream over Wi-Fi.
 3. Select the board profile that matches the printed module. For an
    AI Thinker-compatible camera, select **AI Thinker ESP32-CAM** and the
    correct serial port. Use a low upload speed if uploads are unreliable.
-4. Open `firmware/larp-esp32-cam/larp_esp32_cam.ino`.
+4. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 5. For Scout A, set `CAMERA_ID` to `'A'`; for Scout B, set it to `'B'`.
    Set `WIFI_SSID` and `WIFI_PASSWORD` to exactly match the Pi hotspot.
 6. Upload. If the adapter cannot begin upload, hold the board's reset button

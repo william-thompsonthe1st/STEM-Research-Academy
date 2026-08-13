@@ -4,8 +4,8 @@ import unittest
 
 LEGACY_SHARED_PASSWORD = "robo" + "swarm1"
 
-FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-scout" / "larp_scout_controller.ino"
-CAMERA_FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-esp32-cam" / "larp_esp32_cam.ino"
+FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-scout" / "larp-scout.ino"
+CAMERA_FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-esp32-cam" / "larp-esp32-cam.ino"
 INSTALLER = pathlib.Path(__file__).parents[1] / "installer" / "install.sh"
 
 
@@ -19,6 +19,13 @@ class LarpFirmwareTests(unittest.TestCase):
     def test_attachment_was_consolidated_to_one_sketch(self):
         self.assertEqual(self.source.count("void setup()"), 1)
         self.assertEqual(self.source.count("void loop()"), 1)
+
+    def test_arduino_sketch_names_match_their_directories(self):
+        # Arduino IDE requires the primary .ino filename to match the sketch
+        # directory.  A mismatch looks like a fatal compile error before the
+        # source is even passed to the compiler.
+        self.assertEqual(FIRMWARE.name, f"{FIRMWARE.parent.name}.ino")
+        self.assertEqual(CAMERA_FIRMWARE.name, f"{CAMERA_FIRMWARE.parent.name}.ino")
 
     def test_final_hotspot_credentials_match_installer(self):
         self.assertIn('WIFI_SSID[] = "3TSahur-Swarm"', self.source)

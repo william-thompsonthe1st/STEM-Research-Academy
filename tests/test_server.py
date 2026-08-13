@@ -2,6 +2,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+import robot_server.app as app_module
 from robot_server.app import app, drive, drive_sequences, scout_registry, scout_sequences
 
 
@@ -12,6 +13,8 @@ class ServerTests(unittest.TestCase):
 
     def tearDown(self):
         drive.stop()
+        app_module.last_drive_at = 0.0
+        app_module.last_scout_motion_at.update(a=0.0, b=0.0)
         drive_sequences.clear()
         scout_sequences.clear()
 
@@ -135,6 +138,19 @@ class ServerTests(unittest.TestCase):
 
     def test_invalid_camera_profile_is_rejected(self):
         self.assertEqual(self.client.post("/api/camera/profile", json={"profile": "unsafe"}).status_code, 400)
+
+    @patch("robot_server.app.camera.configure")
+    @patch("robot_server.app._snapshot_bytes")
+    def test_optional_camera_work_is_deferred_while_a_larp_is_moving(self, snapshot, configure):
+        app_module.last_scout_motion_at["a"] = time.monotonic()
+        profile = self.client.post("/api/camera/profile", json={"profile": "control"})
+        captured = self.client.post("/api/snapshots/larp-a")
+        self.assertEqual(profile.status_code, 409)
+        self.assertTrue(profile.get_json()["control_active"])
+        self.assertEqual(captured.status_code, 409)
+        self.assertTrue(captured.get_json()["control_active"])
+        configure.assert_not_called()
+        snapshot.assert_not_called()
 
     def test_timeline_is_bounded_and_does_not_require_hardware(self):
         created = self.client.post("/api/events", json={"kind": "test", "source": "test", "message": "timeline ok"})

@@ -372,10 +372,17 @@ offline-use notes, and a hardware validation checklist. Upstream references:
 
 | Target | Sketch | Set before upload |
 | --- | --- | --- |
-| LARP Scout A/B ECHO board | [firmware/larp-scout/larp_scout_controller.ino](firmware/larp-scout/larp_scout_controller.ino) | `ROBOT_ID`, Wi-Fi credentials, and any board-specific library setup. |
-| Inland ESP32-CAM A/B | [firmware/larp-esp32-cam/larp_esp32_cam.ino](firmware/larp-esp32-cam/larp_esp32_cam.ino) | `CAMERA_ID`, Wi-Fi credentials, and the camera board profile. |
+| LARP Scout A/B ECHO board | [firmware/larp-scout/larp-scout.ino](firmware/larp-scout/larp-scout.ino) | `ROBOT_ID`, Wi-Fi credentials, and any board-specific library setup. |
+| Inland ESP32-CAM A/B | [firmware/larp-esp32-cam/larp-esp32-cam.ino](firmware/larp-esp32-cam/larp-esp32-cam.ino) | `CAMERA_ID`, Wi-Fi credentials, and the camera board profile. |
 
 Upload one copy configured as `A` and one as `B` for each firmware type. The [LARP controller README](firmware/larp-scout/README.md) and [camera README](firmware/larp-esp32-cam/README.md) cover dependencies and upload notes.
+
+**Verified Arduino baseline (2026-08-12):** the ECHO sketch verifies as
+**ESP32S3 Dev Module** and the Inland sketch as **AI Thinker ESP32-CAM** with
+`esp32 by Espressif Systems` **3.0.7**. The ECHO build additionally needs
+3DBuffalo **EchoLib 1.3.0** and **Adafruit BusIO**. The sketch names now match
+their folders, which Arduino requires: open the exact linked `.ino` file, not
+only its parent folder.
 
 ### LARP connectivity: beginner setup and troubleshooting
 
@@ -538,6 +545,7 @@ terminal.
 | Pi relays the registered camera feed on the local dashboard URL | A camera that reconnects with a different DHCP address resumes on the selected LARP tab. |
 | MJPEG capture uses the latest frame and is capped at 10 FPS | Avoids a growing camera backlog and leaves airtime for drive commands. |
 | Dashboard keeps only the selected LARP stream open | Do not open both camera streams manually while driving; one active stream is the control-priority operating mode. |
+| Optional vision pauses and profile/snapshot requests are deferred while a robot moves | Nonessential camera work cannot compete with the core Pi or LARP command path. Stop all robots before changing a camera profile or saving a snapshot. |
 | Pi USB-camera capture supervises disconnects and stale frames | A dashboard USB camera retries after a disconnect, and a stopped feed is reported unavailable instead of being treated as live. |
 
 For the first test, keep the robot close to the Pi, motors disabled, and only

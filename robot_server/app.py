@@ -42,6 +42,7 @@ camera = CameraStream(
     fps=int(os.environ.get("CAMERA_FPS", "10")),
 )
 last_drive_at = 0.0
+last_scout_motion_at = {"a": 0.0, "b": 0.0}
 state_lock = threading.Lock()
 shutdown_event = threading.Event()
 drive_sequences: dict[str, int] = {}
@@ -74,6 +75,15 @@ CAMERA_URL_SETTINGS = {
     "a": ("LARP_A_CAMERA_URL", "ESP32_ONE_STREAM_URL"),
     "b": ("LARP_B_CAMERA_URL", "ESP32_TWO_STREAM_URL"),
 }
+
+
+def _control_is_active() -> bool:
+    """Report recent hub or Scout motion for optional-work bandwidth gating."""
+    now = time.monotonic()
+    return bool(
+        (last_drive_at and now - last_drive_at < WATCHDOG_SECONDS * 1.5)
+        or any(stamp and now - stamp < 0.35 for stamp in last_scout_motion_at.values())
+    )
 
 
 def _scout_camera_url(scout_id: str) -> str:
@@ -119,7 +129,7 @@ vision = VisionManager({
     "3tsahur": camera.latest_jpeg,
     "larp-a": lambda: _scout_frame("a"),
     "larp-b": lambda: _scout_frame("b"),
-})
+}, should_pause=_control_is_active)
 events: deque[dict] = deque(maxlen=120)
 event_lock = threading.Lock()
 snapshot_dir = Path(os.environ.get("SNAPSHOT_DIR", "/tmp/3tsahur-snapshots"))
@@ -214,6 +224,8 @@ def create_app() -> Flask:
     @app.post("/api/camera/profile")
     def set_camera_profile():
         global camera_profile
+        if _control_is_active():
+            return jsonify(error="Stop all robots before changing the camera profile", control_active=True), 409
         profile = str((request.get_json(silent=True) or {}).get("profile", ""))
         if profile not in CAMERA_PROFILES:
             return jsonify(error="Unknown camera profile"), 400
@@ -268,6 +280,8 @@ def create_app() -> Flask:
     def snapshot(source: str):
         if source not in ("3tsahur", "larp-a", "larp-b"):
             return jsonify(error="Unknown snapshot source"), 404
+        if _control_is_active():
+            return jsonify(error="Stop all robots before taking a snapshot", control_active=True), 409
         try:
             image = _snapshot_bytes(source)
             if not image:
@@ -435,6 +449,9 @@ def create_app() -> Flask:
             "y": round(max(-100, min(100, y))),
             "speed": round(max(0, min(100, speed))),
         }
+        last_scout_motion_at[scout_id] = (
+            time.monotonic() if query["speed"] > 0 and (query["x"] or query["y"]) else 0.0
+        )
         with scout_command_locks[scout_id]:
             sequence_key = (scout_id, session)
             if sequence and sequence <= scout_sequences.get(sequence_key, -1):
@@ -454,6 +471,7 @@ def create_app() -> Flask:
     def scout_stop(scout_id: str):
         if scout_id not in SCOUTS:
             return jsonify(error="Unknown scout"), 404
+        last_scout_motion_at[scout_id] = 0.0
         if scout_registry.snapshot(scout_id) is None:
             return jsonify(ok=True, connected=False)
         try:

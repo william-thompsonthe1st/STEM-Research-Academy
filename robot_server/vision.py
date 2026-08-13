@@ -16,8 +16,16 @@ from typing import Callable
 class VisionManager:
     """Run pretrained person detection without making control depend on it."""
 
-    def __init__(self, sources: dict[str, Callable[[], object | None]]) -> None:
+    def __init__(
+        self,
+        sources: dict[str, Callable[[], object | None]],
+        should_pause: Callable[[], bool] | None = None,
+    ) -> None:
         self._sources = sources
+        # A source can be an MJPEG request to an ESP32-CAM.  While an operator
+        # is driving, that traffic is optional and must not compete with the
+        # short control-heartbeat path.
+        self._should_pause = should_pause or (lambda: False)
         self._enabled = {source: False for source in sources}
         self._states = {source: self._new_state() for source in sources}
         self._lock = threading.Lock()
@@ -100,8 +108,12 @@ class VisionManager:
                 self._wake.wait(timeout=1)
                 self._wake.clear()
                 continue
+            if self._should_pause():
+                self._wake.wait(timeout=0.1)
+                self._wake.clear()
+                continue
             for source in active:
-                if self._stop.is_set():
+                if self._stop.is_set() or self._should_pause():
                     break
                 self._run_one(source)
             self._wake.wait(timeout=self.interval)

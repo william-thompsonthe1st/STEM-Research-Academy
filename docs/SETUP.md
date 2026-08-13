@@ -12,9 +12,9 @@ profiles are selected in Arduino IDE.
 
 ## 2. Flash the LARP devices
 
-1. Open `firmware/larp-scout/larp_scout_controller.ino`; set `ROBOT_ID` to A
+1. Open `firmware/larp-scout/larp-scout.ino`; set `ROBOT_ID` to A
    and flash LARP Scout A. Change it to B and flash LARP Scout B.
-2. Open `firmware/larp-esp32-cam/larp_esp32_cam.ino`; set `CAMERA_ID` to A and
+2. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`; set `CAMERA_ID` to A and
    flash the camera on Scout A. Repeat with B for Scout B.
 3. Copy `HOTSPOT_PASSWORD` from the Pi's
    `/etc/stem-research-academy/config.env` into `WIFI_PASSWORD` in all four

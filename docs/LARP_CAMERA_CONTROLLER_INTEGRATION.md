@@ -23,8 +23,8 @@ flowchart LR
 
 | Item | Requirement | Why it matters |
 | --- | --- | --- |
-| ECHO controller | One working controller flashed with `larp_scout_controller.ino` | Drives the LARP and reports CSI; retain its existing motor wiring. |
-| Inland ESP32-CAM | One camera board and correctly seated camera ribbon | Runs `larp_esp32_cam.ino` and serves the video feed. |
+| ECHO controller | One working controller flashed with `larp-scout.ino` | Drives the LARP and reports CSI; retain its existing motor wiring. |
+| Inland ESP32-CAM | One camera board and correctly seated camera ribbon | Runs `larp-esp32-cam.ino` and serves the video feed. |
 | Camera power | Stable **regulated 5 V**, designed for at least **1 A** per camera | Camera startup is sensitive to voltage dips and motor noise. |
 | Wi-Fi | Pi hotspot `3TSahur-Swarm`, 2.4 GHz | Both boards communicate with the dashboard over this network. |
 | Flashing method | Built-in USB, or a safe 3.3 V USB-to-UART connection | Most ESP32-CAM boards do not have a USB port. |
@@ -94,10 +94,11 @@ or microcontroller owns the pin.
 
 1. In Arduino IDE Preferences, add the Espressif boards URL:
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json`.
-2. In Boards Manager, install **esp32 by Espressif Systems**.
+2. In Boards Manager, install **esp32 by Espressif Systems 3.0.7**. This is
+   the version used to verify both project sketches.
 3. Confirm the camera is AI Thinker-compatible before selecting **AI Thinker
    ESP32-CAM**. Do not use this project sketch with an unknown camera pin map.
-4. Open `firmware/larp-esp32-cam/larp_esp32_cam.ino`.
+4. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 5. Set `CAMERA_ID = 'A'` for the first camera or `CAMERA_ID = 'B'` for the
    second. Set `WIFI_SSID` and `WIFI_PASSWORD` to the Pi hotspot values.
 6. Connect `GPIO0` to GND, then reset or power-cycle the camera. Upload at a
