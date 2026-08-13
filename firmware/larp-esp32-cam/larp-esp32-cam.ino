@@ -87,7 +87,14 @@ bool startCamera() {
   config.xclk_freq_hz = 20000000; config.pixel_format = PIXFORMAT_JPEG;
   config.frame_size = FRAMESIZE_VGA; config.jpeg_quality = psramFound() ? 12 : 16;
   config.fb_count = psramFound() ? 2 : 1; config.grab_mode = CAMERA_GRAB_LATEST;
-  return esp_camera_init(&config) == ESP_OK;
+  const esp_err_t result = esp_camera_init(&config);
+  if (result == ESP_OK) return true;
+  Serial.printf("Camera initialization failed (esp_err=0x%x).\n", result);
+  Serial.println("Expected Arduino IDE board: esp32 by Espressif Systems > AI Thinker ESP32-CAM.");
+  Serial.println("Expected camera pinout: PWDN 32, XCLK 0, SIOD/SIOC 26/27, D0-D7 5/18/19/21/36/39/34/35, VSYNC/HREF/PCLK 25/23/22.");
+  Serial.println("NodeMCU-32S may upload this binary, but it is not the supported camera profile.");
+  Serial.println("Verify the Inland board pinout, regulated 5 V power, and camera ribbon orientation.");
+  return false;
 }
 
 bool startServer() {

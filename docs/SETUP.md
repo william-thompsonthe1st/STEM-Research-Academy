@@ -26,6 +26,11 @@ profiles are selected in Arduino IDE.
 Use a current Raspberry Pi OS image with internet access. Clone this repository
 and run the installer as the normal Pi user:
 
+If `sudo` first reports `unable to resolve host`, repair the local hostname and
+`/etc/hosts` mismatch with the paste-ready block in [README: Fix a Pi hostname
+warning before installing](../README.md#fix-a-pi-hostname-warning-before-installing),
+then return here. That warning is unrelated to Git/GitHub.
+
 ```bash
 git clone https://github.com/william-thompsonthe1st/STEM-Research-Academy.git
 cd STEM-Research-Academy

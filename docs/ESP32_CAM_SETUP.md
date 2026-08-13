@@ -50,8 +50,10 @@ the resulting MJPEG stream over Wi-Fi.
    | GND, only while uploading | GPIO 0 |
 
 3. Select the board profile that matches the printed module. For an
-   AI Thinker-compatible camera, select **AI Thinker ESP32-CAM** and the
-   correct serial port. Use a low upload speed if uploads are unreliable.
+   AI Thinker-compatible camera, select **esp32 by Espressif Systems > AI
+   Thinker ESP32-CAM** and the correct serial port. `NodeMCU-32S` is generic
+   and is not supported for this camera pin map. Use a low upload speed if
+   uploads are unreliable.
 4. Open `firmware/larp-esp32-cam/larp-esp32-cam.ino`.
 5. For Scout A, set `CAMERA_ID` to `'A'`; for Scout B, set it to `'B'`.
    Set `WIFI_SSID` and `WIFI_PASSWORD` to exactly match the Pi hotspot.
@@ -104,7 +106,7 @@ sudo systemctl restart stem-robot-dashboard
 | Symptom | Check |
 | --- | --- |
 | No serial boot or repeated brownout | Use a regulated 5 V supply and short power leads; camera startup can draw more current than a USB adapter provides. |
-| `Camera initialization failed` | Confirm the Inland board uses the AI Thinker-compatible pin map and that the ribbon cable is seated. |
+| `Camera initialization failed` | Read the printed `esp_err`, select **AI Thinker ESP32-CAM**, confirm the Inland pin map, reseat the ribbon cable, and use regulated 5 V power. |
 | Camera joins Wi-Fi but no dashboard image | Confirm the serial log says `Camera registered with Pi dashboard.` Then open `/status` and `/stream` directly. `LARP_A_CAMERA_URL` or `LARP_B_CAMERA_URL` is the legacy fallback. |
 | Camera cannot join the hotspot | Use the 2.4 GHz `3TSahur-Swarm` network, verify the password, and keep it at least eight characters. |
 | Controls become slow while video runs | Verify only one dashboard tab is active, keep the 10 FPS firmware setting, and move the cameras closer to the Pi hotspot. |

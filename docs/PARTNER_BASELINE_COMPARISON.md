@@ -3,7 +3,9 @@
 This project is an integration and extension of the partner team's working
 baseline at
 [`AloeVeraZ/CityTechClubProjects/stem-research-academy`](https://github.com/AloeVeraZ/CityTechClubProjects/tree/main/stem-research-academy),
-reviewed from its `main` branch on 2026-08-12. It is not a replacement
+reviewed at commit `404c7e855bd88b0f8c1601eb4b4b0e43404b78dd` on
+2026-08-12. The target audit started at commit
+`b16a5057ba6fd84da6fa77e9955ec039f2b2a885`. It is not a replacement
 drivetrain design.
 
 ## Retained exactly from the tested baseline
@@ -30,6 +32,8 @@ drivetrain design.
 | CSI | Scout status forwarding | CSI indicator and calibration UI | CSI remains advisory; it cannot block drive control. |
 | Vision/tools | No optional inference toolchain | Optional per-feed YOLO, snapshots, health, timeline, gamepad, dead-man mode | Each is optional and failure-isolated from drive/stop paths. |
 | C270 gimbal/ramp | Not present | Disabled-by-default actuator staging UI/API | No pin/channel/PWM output is enabled until hardware data is supplied. |
+| Persistent config migration | Partner keys `SCOUT_A/B_HOST` and `ESP32_ONE/TWO_STREAM_URL` | Values migrate to the corresponding `LARP_*` keys; runtime also accepts the old names | Existing customized addresses remain active after an in-place upgrade. |
+| Pi hostname resolution | Hostname changes to `3tsahur` without synchronizing `/etc/hosts` | Preserves a backup and changes only the `127.0.1.1` hostname mapping | Prevents the local `sudo: unable to resolve host` mismatch while retaining unrelated host aliases. |
 
 ## Latency method: copied, then tightened safely
 
@@ -51,6 +55,7 @@ proven motor path:
 | LARP CSI/status polling | Both scouts every 2 s | Skip a driven scout; inactive polls every 5 s, active-tab poll every 1.2 s | Auxiliary telemetry yields to motor control. |
 | Wi-Fi reconnect cadence | Both controller/camera images retry every 5 s | Staggered controller 1.8/2.2 s; camera 2.0/2.4 s | Faster recovery with reduced synchronized retry bursts. |
 | Video airtime | Existing shared hotspot | One active dashboard stream and 10 FPS ESP32-CAM cap | Preserves capacity for short control packets. |
+| Repeated held commands | Every heartbeat reapplies the same motor output | Identical Pi PWM and LARP drivetrain writes are skipped while watchdog timestamps still refresh | Reduces control-loop work without changing output, command cadence, or safety timeouts. |
 
 The motor pins, mixer, PWM frequency, ECHO motor IDs, command endpoints,
 watchdogs, and controller `WiFi.setSleep(false)` behavior are intentionally not
@@ -58,7 +63,8 @@ changed by this tuning.
 
 ## Compatibility and performance evidence
 
-The isolated desktop suite currently passes **57 tests**, including the
+The isolated target desktop suite currently passes **63 tests**, and the
+partner suite independently passes **32 tests**, including the target's
 three-robot compatibility test. It registers both LARPs with distinct simulated
 hotspot addresses, sends a current 3TSahur command plus a command to each LARP,
 and verifies both LARP status routes and the hub motor state.

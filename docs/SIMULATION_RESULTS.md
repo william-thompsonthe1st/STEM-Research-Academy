@@ -7,7 +7,7 @@ repository's hardware-independent Python test suite. Firmware source was also
 verified in Arduino against the actual ECHO and Inland board profiles; see
 **Arduino firmware verification** below.
 
-The current suite completed with **73 passing tests**.
+The current suite completed with **77 passing tests**.
 
 | Group | Checks | Result |
 | --- | ---: | --- |
@@ -30,14 +30,19 @@ Systems 3.0.7`:
 
 | Firmware | Arduino board profile | Result |
 | --- | --- | --- |
-| `firmware/larp-scout/larp-scout.ino` | `ESP32S3 Dev Module` | verified; 985,685 bytes flash (75%), 45,696 bytes RAM (13%) |
-| `firmware/larp-esp32-cam/larp-esp32-cam.ino` | `AI Thinker ESP32-CAM` | verified; 1,056,961 bytes flash (33%), 51,580 bytes RAM (15%) |
+| `firmware/larp-scout/larp-scout.ino` | `ESP32S3 Dev Module` | verified; 985,601 bytes flash (75%), 45,704 bytes RAM (13%) |
+| `firmware/larp-esp32-cam/larp-esp32-cam.ino` | `AI Thinker ESP32-CAM` | verified; 1,057,281 bytes flash (33%), 51,580 bytes RAM (15%) |
 
 The ECHO verification used EchoLib 1.3.0 and Adafruit BusIO. The primary
 `.ino` names now match their sketch directories, eliminating Arduino's
 pre-compile `main file missing from sketch` fatal error. This validation checks
 the code and board definitions; a physical upload still requires the correct
 USB/bootloader procedure on each actual board.
+
+The merged performance path also avoids rewriting unchanged Pi or LARP motor
+outputs for held dashboard commands while continuing to refresh each watchdog.
+This keeps the HTTP, Wi-Fi, CSI, and dashboard control loop available without
+changing the control API or timeout behavior.
 
 ## Control-path timing simulation
 

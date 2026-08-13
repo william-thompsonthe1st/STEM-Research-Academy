@@ -31,7 +31,8 @@ ECHO controller.
 
 The AI Thinker pin map is built into this sketch. Do not select this board
 profile for an unknown ESP32-CAM layout without first matching its printed
-pinout. Use the detailed [ESP32-CAM setup guide](../../docs/ESP32_CAM_SETUP.md) for
+pinout. `NodeMCU-32S` may upload a generic ESP32 binary but is not a supported
+camera profile. Use the detailed [ESP32-CAM setup guide](../../docs/ESP32_CAM_SETUP.md) for
 USB-to-UART wiring and power requirements.
 
 ## Verify connection and video
@@ -59,7 +60,7 @@ traffic stays available.
 | `main file missing from sketch` | The primary `.ino` name and its folder do not match. | Open `larp-esp32-cam.ino` directly and do not rename it alone. |
 | `esp_camera.h: No such file or directory` | The ESP32 board package or board selection is wrong. | Install `esp32 by Espressif Systems 3.0.7` and select AI Thinker ESP32-CAM. |
 | Upload cannot connect | The camera is not in flashing mode. | Connect GPIO0 to GND, reset, upload at 115200, then remove GPIO0-to-GND and reset for normal boot. |
-| `Camera initialization failed` | Camera pin map, ribbon seating, or power is wrong. | Confirm AI Thinker-compatible pinout, reseat the camera ribbon, and use regulated 5 V with enough current. |
+| `Camera initialization failed` | Camera pin map, ribbon seating, or power is wrong. | Read the printed `esp_err`, select AI Thinker ESP32-CAM, confirm the pinout, reseat the ribbon, and use regulated 5 V with enough current. |
 | Camera joins Wi-Fi but no dashboard image | The Pi has not received a current registration or cannot fetch the stream. | Confirm the serial message `Camera registered with Pi dashboard.`, then open `/status` and `/stream` directly. |
 | Controls feel slow while video runs | Wi-Fi airtime is overloaded. | Keep one LARP tab/feed active, retain the 10 FPS cap, move closer to the Pi, and stop the robot before optional snapshots or vision use. |
 

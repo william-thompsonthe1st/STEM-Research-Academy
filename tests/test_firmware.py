@@ -97,6 +97,17 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn("void maintainPiRegistration()", self.camera_source)
         self.assertIn("Camera registered with Pi dashboard.", self.camera_source)
 
+    def test_camera_init_failure_explains_required_profile_and_pinout(self):
+        self.assertIn("Camera initialization failed (esp_err=0x%x)", self.camera_source)
+        self.assertIn("AI Thinker ESP32-CAM", self.camera_source)
+        self.assertIn("NodeMCU-32S may upload", self.camera_source)
+        self.assertIn("PWDN 32, XCLK 0", self.camera_source)
+
+    def test_repeated_scout_heartbeats_do_not_rewrite_unchanged_motor_outputs(self):
+        self.assertIn("if (x != appliedDriveX || y != appliedDriveY)", self.source)
+        self.assertIn("if (force || !motorsStopped", self.source)
+        self.assertIn("stopMotors(true);", self.source)
+
     def test_installer_schedules_reboot_outside_pipe_process(self):
         self.assertIn("systemd-run", self.installer)
         self.assertIn("--on-active=10s", self.installer)

@@ -1,9 +1,10 @@
+import os
 import time
 import unittest
 from unittest.mock import patch
 
 import robot_server.app as app_module
-from robot_server.app import app, drive, drive_sequences, scout_registry, scout_sequences
+from robot_server.app import _env_first, app, drive, drive_sequences, scout_registry, scout_sequences
 
 
 class ServerTests(unittest.TestCase):
@@ -27,6 +28,12 @@ class ServerTests(unittest.TestCase):
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.get_json()["ok"])
+
+    def test_partner_environment_names_remain_compatible(self):
+        with patch.dict(os.environ, {"SCOUT_A_HOST": "partner-a.local"}, clear=True):
+            self.assertEqual(_env_first("LARP_A_HOST", "SCOUT_A_HOST", default="larp-a.local"), "partner-a.local")
+        with patch.dict(os.environ, {"LARP_A_HOST": "larp-a.local", "SCOUT_A_HOST": "partner-a.local"}, clear=True):
+            self.assertEqual(_env_first("LARP_A_HOST", "SCOUT_A_HOST"), "larp-a.local")
 
     def test_status_exposes_optional_feature_health_without_blocking_control(self):
         response = self.client.get("/api/status")
