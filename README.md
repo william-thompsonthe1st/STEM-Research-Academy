@@ -495,6 +495,15 @@ IPEX-1 antenna is required. Do this with robot power **off**:
 An antenna issue affects signal strength and association reliability. It does
 not cause an Espressif compile error and it does not alter WPA protocol choice.
 
+**Photo-specific check.** The supplied Scout photo shows an ECHO controller
+installed on the chassis and an external antenna lead present. A photo cannot
+prove that the tiny IPEX-1 connector is fully snapped on, that the cable is
+undamaged, or that the antenna has good radio performance, so perform the
+powered-off re-seat check above. The Inland ESP32-CAM and its camera ribbon are
+not visible in that photo; verify separately that it has a regulated 5 V,
+1 A-or-greater supply and is not powered from the ECHO logic rail or any motor
+terminal.
+
 #### Step 4: watch one ECHO join the hotspot
 
 1. Connect the ECHO to USB and open Arduino IDE's Serial Monitor at `115200`.
@@ -527,6 +536,7 @@ not cause an Espressif compile error and it does not alter WPA protocol choice.
 | Camera HTTP server is reused after Wi-Fi reconnect | A temporary hotspot outage cannot create a second competing camera server. |
 | MJPEG capture uses the latest frame and is capped at 10 FPS | Avoids a growing camera backlog and leaves airtime for drive commands. |
 | Dashboard keeps only the selected LARP stream open | Do not open both camera streams manually while driving; one active stream is the control-priority operating mode. |
+| Pi USB-camera capture supervises disconnects and stale frames | A dashboard USB camera retries after a disconnect, and a stopped feed is reported unavailable instead of being treated as live. |
 
 For the first test, keep the robot close to the Pi, motors disabled, and only
 one camera powered. Add the second camera only after the first ECHO and camera
@@ -584,10 +594,10 @@ pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-The recorded desktop simulation ran **58 tests successfully**: dashboard/UI,
-mecanum mixing, camera discovery/profile isolation, firmware invariants,
-scout registry, Flask control APIs, mission events, snapshots, and optional
-vision failure handling. Hardware validation is still required for motor
+The automated suite covers dashboard/UI behavior, mecanum mixing, camera
+discovery/recovery, firmware invariants, scout registry, Flask control APIs,
+mission events, snapshots, and optional vision failure handling. Hardware
+validation is still required for motor
 polarity/current, Wi-Fi range, camera focus, CSI calibration, gamepad mapping,
 and physical emergency-stop behavior. Read
 [docs/SIMULATION_RESULTS.md](docs/SIMULATION_RESULTS.md) for the exact
