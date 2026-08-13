@@ -2,6 +2,8 @@ import pathlib
 import unittest
 
 
+LEGACY_SHARED_PASSWORD = "robo" + "swarm1"
+
 FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-scout" / "larp_scout_controller.ino"
 CAMERA_FIRMWARE = pathlib.Path(__file__).parents[1] / "firmware" / "larp-esp32-cam" / "larp_esp32_cam.ino"
 INSTALLER = pathlib.Path(__file__).parents[1] / "installer" / "install.sh"
@@ -20,9 +22,11 @@ class LarpFirmwareTests(unittest.TestCase):
 
     def test_final_hotspot_credentials_match_installer(self):
         self.assertIn('WIFI_SSID[] = "3TSahur-Swarm"', self.source)
-        self.assertIn('WIFI_PASSWORD[] = "roboswarm1"', self.source)
+        self.assertIn('WIFI_PASSWORD[] = "REPLACE_WITH_PI_PASSWORD"', self.source)
+        self.assertNotIn(LEGACY_SHARED_PASSWORD, self.source)
         self.assertIn("HOTSPOT_SSID=3TSahur-Swarm", self.installer)
-        self.assertIn("HOTSPOT_PASSWORD=roboswarm1", self.installer)
+        self.assertIn("generate_hotspot_password", self.installer)
+        self.assertNotIn(LEGACY_SHARED_PASSWORD, self.installer)
 
     def test_echo_differential_drive_api_and_safety_are_present(self):
         self.assertIn("TankDrive drivetrain", self.source)
@@ -111,7 +115,7 @@ class LarpFirmwareTests(unittest.TestCase):
 
     def test_installer_uses_resizable_window_and_simple_dashboard_address(self):
         self.assertIn('nginx-light', self.installer)
-        self.assertIn('listen 80 default_server', self.installer)
+        self.assertIn('server_name 10.42.0.1 3tsahur.local localhost _;', self.installer)
         self.assertIn('CAMERA_FPS=10', self.installer)
         self.assertIn('DRIVE_WATCHDOG_SECONDS=0.20', self.installer)
         self.assertNotIn('fullscreen robot dashboard', self.installer)

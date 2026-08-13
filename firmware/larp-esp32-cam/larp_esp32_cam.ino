@@ -11,7 +11,9 @@
 
 constexpr char CAMERA_ID = 'A';  // Change the second board to 'B'.
 constexpr char WIFI_SSID[] = "3TSahur-Swarm";
-constexpr char WIFI_PASSWORD[] = "roboswarm1";
+// Copy HOTSPOT_PASSWORD from the Pi config.env before flashing. Never commit
+// the real password; every ECHO and ESP32-CAM must receive the same value.
+constexpr char WIFI_PASSWORD[] = "REPLACE_WITH_PI_PASSWORD";
 constexpr unsigned long WIFI_RETRY_A_MS = 2000;
 constexpr unsigned long WIFI_RETRY_B_MS = 2400;
 constexpr unsigned long STREAM_FRAME_INTERVAL_MS = 100;  // 10 FPS maximum.
@@ -80,6 +82,9 @@ bool startCamera() {
 }
 
 bool startServer() {
+  // The HTTP server survives a Wi-Fi reconnect. Starting a second instance
+  // can fail after a transient hotspot outage, so reuse the original server.
+  if (server != nullptr) return true;
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.lru_purge_enable = true;
   if (httpd_start(&server, &config) != ESP_OK) return false;

@@ -50,6 +50,7 @@ nmcli connection modify "$CONNECTION_NAME" \
     802-11-wireless.channel "$HOTSPOT_CHANNEL" \
     802-11-wireless.powersave 2 \
     802-11-wireless-security.key-mgmt wpa-psk \
+    802-11-wireless-security.proto rsn \
     802-11-wireless-security.psk "$HOTSPOT_PASSWORD" \
     ipv4.method shared \
     ipv4.addresses "$HOTSPOT_ADDRESS" \

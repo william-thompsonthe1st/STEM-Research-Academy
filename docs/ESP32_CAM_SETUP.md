@@ -59,9 +59,12 @@ the resulting MJPEG stream over Wi-Fi.
 7. Remove the GPIO 0-to-ground upload jumper, reset the board, and reconnect
    only normal operating power. Leaving GPIO 0 grounded prevents normal boot.
 
-The firmware waits for Wi-Fi without blocking, retries every five seconds, and
-starts its HTTP stream after it joins the hotspot. It serves at most 10 frames
-per second so drive commands keep priority on the shared network.
+The firmware waits for Wi-Fi without blocking and retries every 2.0 seconds on
+Camera A or 2.4 seconds on Camera B. The different retry intervals prevent the
+two cameras from retrying in lockstep after the Pi hotspot restarts. It starts
+its HTTP stream after it joins the hotspot and reuses that server after a
+temporary Wi-Fi drop. It serves at most 10 frames per second so drive commands
+keep priority on the shared network.
 
 ## Verify the feed
 

@@ -31,7 +31,9 @@
 constexpr char ROBOT_ID = 'A';  // Flash one board as 'A' and the other as 'B'.
 
 constexpr char WIFI_SSID[] = "3TSahur-Swarm";
-constexpr char WIFI_PASSWORD[] = "roboswarm1";
+// Copy HOTSPOT_PASSWORD from the Pi config.env before flashing. Never commit
+// the real password; every ECHO and ESP32-CAM must receive the same value.
+constexpr char WIFI_PASSWORD[] = "REPLACE_WITH_PI_PASSWORD";
 
 constexpr uint8_t LEFT_MOTOR_ID = 1;
 constexpr uint8_t RIGHT_MOTOR_ID = 6;

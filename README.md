@@ -261,7 +261,7 @@ then performs package installation, preflight validation, atomic app
 replacement, hotspot/service setup, and reboot.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/curl-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/agent/integrate-3tsahur-larp/installer/curl-install.sh | bash
 ```
 
 To install a reviewed non-default branch, send the branch name to **bash**:
@@ -328,7 +328,7 @@ installs Ultralytics/NCNN, downloads the pretrained `yolo11n` weights, and
 exports the 320px NCNN model used by the dashboard.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/install-vision.sh | bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/agent/integrate-3tsahur-larp/installer/install-vision.sh | bash
 ```
 
 YOLO remains optional: do not install it until the base dashboard, cameras,
@@ -376,6 +376,187 @@ offline-use notes, and a hardware validation checklist. Upstream references:
 | Inland ESP32-CAM A/B | [firmware/larp-esp32-cam/larp_esp32_cam.ino](firmware/larp-esp32-cam/larp_esp32_cam.ino) | `CAMERA_ID`, Wi-Fi credentials, and the camera board profile. |
 
 Upload one copy configured as `A` and one as `B` for each firmware type. The [LARP controller README](firmware/larp-scout/README.md) and [camera README](firmware/larp-esp32-cam/README.md) cover dependencies and upload notes.
+
+### LARP connectivity: beginner setup and troubleshooting
+
+This section is the one to follow if a LARP Scout will not appear in the
+dashboard. It deliberately keeps the working LARP firmware unchanged. Start
+with the Pi hotspot, then check one ECHO at a time; changing several things at
+once makes the cause impossible to identify.
+
+**Important:** the Inland ESP32-CAM does not connect to the ECHO controller at
+runtime. They are separate Wi-Fi clients. The ECHO drives the motors and the
+camera streams video; both independently connect to the Raspberry Pi hotspot.
+Their only pairing is the matching `A` or `B` identity. A camera failure must
+not prevent the matching ECHO from registering and receiving drive commands.
+
+```mermaid
+flowchart LR
+    P["Raspberry Pi 4\nHotspot: 3TSahur-Swarm\nWPA2-Personal / channel 6"]
+    A["Zippy antenna\nIPEX-1 physical connector"] --> E["ECHO controller\nESP32-S3 station mode"]
+    E <-->|"2.4 GHz Wi-Fi"| P
+    P --> D["Dashboard\nhttp://10.42.0.1"]
+```
+
+#### Compatibility check: what this project now enforces
+
+| Piece | Required setting | Why it works together |
+| --- | --- | --- |
+| ECHO controller | ESP32-S3 in Wi-Fi station mode | The LARP sketch uses `WiFi.begin(...)`, auto-reconnect, and disables Wi-Fi sleep. It does not request WPA1, WPA3, enterprise Wi-Fi, or 5 GHz. |
+| Zippy/ECHO radio | 2.4 GHz Wi-Fi 4 | 3DBuffalo specifies that ECHO is an ESP32-S3 board with 2.4 GHz Wi-Fi and an external IPEX-1 antenna. |
+| Pi hotspot | 2.4 GHz `bg`, channel 6 | Channel 6 is a normal 2.4 GHz channel shared by the Pi and ESP32-S3. The project does not use 5 GHz. |
+| Pi hotspot security | WPA2-Personal / RSN (`wpa-psk` + `proto rsn`) | `rsn` explicitly prevents legacy WPA1 negotiation. ESP32 supports WPA2-Personal. The project does not use WPA3-only or enterprise security. |
+| Network addressing | Pi at `10.42.0.1`; ESP32 receives DHCP | The controller registers directly to the Pi's IPv4 address, so control does not depend on `.local` name resolution. |
+
+The IPEX-1 antenna is **hardware**, not a Wi-Fi protocol setting. A loose,
+damaged, poorly placed, or missing antenna can reduce radio signal enough to
+prevent connection, but changing antenna code cannot select WPA1 or WPA2.
+
+#### Step 1: start and check the Pi hotspot
+
+1. Connect a screen/keyboard to the Pi or SSH into it. Open a terminal.
+2. Run the commands below exactly. They do not reveal the Wi-Fi password.
+
+   ```bash
+   sudo systemctl restart stem-robot-hotspot
+   sudo systemctl status stem-robot-hotspot --no-pager
+   nmcli -f GENERAL.STATE,IP4.ADDRESS device show wlan0
+   nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel connection show stem-robot-hotspot
+   nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connection show stem-robot-hotspot
+   ```
+
+3. Read the output. You should find the hotspot name, 2.4 GHz `bg` band,
+   channel `6`, `wpa-psk`, and `rsn`. `rsn` is the name NetworkManager uses
+   for WPA2. If `proto` is blank, the Pi is still using an older hotspot
+   profile; reinstall/update this project and restart the hotspot so the new
+   profile is applied.
+4. From a phone or laptop, look for `3TSahur-Swarm` in the Wi-Fi list. Seeing
+   the name proves only that the Pi is broadcasting; it does not yet prove an
+   ECHO has joined.
+
+Do **not** run Raspberry Pi's hotel-Wi-Fi hotspot tutorial on this Pi. It is a
+dual-adapter travel-router setup and would compete with this project's
+`stem-robot-hotspot` service for `wlan0`.
+
+#### Step 2: set credentials once, then copy them to every Wi-Fi board
+
+The Pi, both LARP controllers, and both ESP32-CAMs must use the **same** SSID
+and password. The installer preserves an existing hotspot password during an
+upgrade; it cannot automatically send a changed password to the four boards.
+
+1. On the Pi, open the protected configuration file:
+
+   ```bash
+   sudoedit /etc/stem-research-academy/config.env
+   ```
+
+2. A new installation creates a private password automatically. Keep it, or set
+   `HOTSPOT_SSID` and `HOTSPOT_PASSWORD` yourself. For a beginner-friendly,
+   trouble-free value, use a password of 12–63 ASCII letters, numbers, hyphens,
+   or underscores. Do not use spaces, quotes, or `#` unless you understand
+   shell quoting. Do not paste the password into a commit, issue, or shared log.
+3. Restart the Pi hotspot:
+
+   ```bash
+   sudo systemctl restart stem-robot-hotspot
+   ```
+
+4. In each controller and camera sketch, change the matching lines:
+
+   ```cpp
+   constexpr char WIFI_SSID[] = "your-Pi-hotspot-name";
+   constexpr char WIFI_PASSWORD[] = "your-private-password";
+   ```
+
+5. Flash both LARP ECHOs and both ESP32-CAM boards. Use `ROBOT_ID = 'A'` on
+   Scout A and `ROBOT_ID = 'B'` on Scout B. Use the same matching `CAMERA_ID`
+   values for the two cameras.
+
+#### Step 3: inspect the Zippy IPEX-1 antenna
+
+3DBuffalo lists an IPEX-1 antenna with Zippy, and states that the ECHO's
+IPEX-1 antenna is required. Do this with robot power **off**:
+
+1. Locate the tiny round gold antenna socket on the ECHO board and the matching
+   tiny connector at the end of the Zippy antenna cable.
+2. Center the connector directly above the socket. Press straight down on the
+   connector's metal collar using a fingertip or non-metal tool. Do not lever it
+   sideways or pull on the cable.
+3. Confirm it sits flat and centered. Do not power the ECHO with the antenna
+   disconnected.
+4. Route the thin antenna lead away from battery leads, motor wires, motor
+   drivers, and large metal chassis pieces. Do not trap, sharply bend, or pinch
+   it under a screw.
+5. If Scout A connects but Scout B does not, swap only the known-good antenna
+   between the powered-off robots. If the failure follows the antenna, replace
+   it. If it stays with the robot, check that robot's credentials, power, and
+   board configuration next.
+
+An antenna issue affects signal strength and association reliability. It does
+not cause an Espressif compile error and it does not alter WPA protocol choice.
+
+#### Step 4: watch one ECHO join the hotspot
+
+1. Connect the ECHO to USB and open Arduino IDE's Serial Monitor at `115200`.
+2. Power the Pi and wait until the hotspot is visible on a phone/laptop.
+3. Power one ECHO. A successful controller log includes a line similar to:
+
+   ```text
+   LARP Scout A joining 3TSahur-Swarm in station mode...
+   Wi-Fi connected. IP address: 10.42.0.x
+   Pi dashboard: http://10.42.0.1/
+   ```
+
+4. Only after Scout A is visible in the dashboard should you repeat the test
+   with Scout B.
+
+| What you see | Most likely cause | Next action |
+| --- | --- | --- |
+| The hotspot name never appears on phone/laptop | Pi service or Wi-Fi interface problem | Repeat Step 1 and read `stem-robot-hotspot` service status. |
+| `Retrying 3TSahur-Swarm...` repeats | Credentials, antenna, range, or Pi profile mismatch | Recheck Step 1 security output, Step 2 credentials, then Step 3 antenna. Test close to the Pi. |
+| An IP address appears but the scout is offline in dashboard | Dashboard service not listening or registration has not completed | On the Pi run `sudo systemctl status stem-robot-dashboard --no-pager` and `curl --fail http://127.0.0.1:8080/healthz`. |
+| Works beside the Pi but fails across the room | Antenna placement, weak supply, radio interference, or metal/motor wiring | Re-seat and re-route IPEX-1; test with motors off and battery fully charged. |
+| Only the second ECHO will not upload | USB/bootloader issue, not hotspot Wi-Fi | Use Step 5. The first working board proves the network settings are valid. |
+
+#### Performance safeguards already in the code
+
+| Safeguard | Effect |
+| --- | --- |
+| ECHO and camera Wi-Fi sleep disabled | Favors control/stream response over battery life while each board is powered. |
+| Camera retry timing differs (`2.0 s` for A, `2.4 s` for B) | Prevents both cameras from repeatedly reconnecting at the exact same moment after a hotspot restart. |
+| Camera HTTP server is reused after Wi-Fi reconnect | A temporary hotspot outage cannot create a second competing camera server. |
+| MJPEG capture uses the latest frame and is capped at 10 FPS | Avoids a growing camera backlog and leaves airtime for drive commands. |
+| Dashboard keeps only the selected LARP stream open | Do not open both camera streams manually while driving; one active stream is the control-priority operating mode. |
+
+For the first test, keep the robot close to the Pi, motors disabled, and only
+one camera powered. Add the second camera only after the first ECHO and camera
+remain connected for ten minutes. This separates Wi-Fi issues from motor noise,
+power drops, and radio congestion.
+
+#### Step 5: separate an upload error from a Wi-Fi error
+
+`Failed to connect to ESP32-S3: No serial data received` is an
+**upload/bootloader** error. It happens after compilation, before the ECHO has
+run any Wi-Fi code. Select `ESP32S3 Dev Module`, use the same Espressif board
+package, direct USB data cable, serial port, and 115200 upload speed as the
+working ECHO. Close Serial Monitor, then hold **PROG** for about five seconds,
+press and release **RESET** while continuing to hold **PROG**, wait for the
+newly enumerated serial port, and upload again.
+
+#### Protocol decisions that should not be changed
+
+- Keep the Pi on 2.4 GHz. ECHO is specified as Wi-Fi 4 (2.4 GHz); it cannot
+  join a 5 GHz-only hotspot.
+- Keep the Pi at WPA2-Personal/RSN. Do not enable WPA1 for compatibility, and
+  do not make the hotspot WPA3-only.
+- Keep the Pi address at `10.42.0.1/24` unless the controller firmware's
+  `PI_ADDRESS` is changed and reflashed at the same time.
+- Keep IPv6 disabled for this local hotspot. The project uses direct IPv4 and
+  DHCP; IPv6 is not needed for LARP control.
+- Do not use captive portals, enterprise Wi-Fi, hidden SSIDs, or the hotel
+  hotspot guide for this robot network.
+
+Vendor and protocol references: [ECHO basic setup](https://3dbuffalo.gitbook.io/echolib/getting-started/basic-setup-+-first-program), [Zippy hardware](https://www.3dbuffalo.co/product-page/zippy), [ECHO hardware](https://www.3dbuffalo.co/echo), [Espressif Wi-Fi security modes](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/wifi-driver/security-and-roaming.html), [NetworkManager WPA protocol settings](https://www.networkmanager.dev/docs/api/latest/settings-802-11-wireless-security.html), and [Espressif ESP32-S3 upload troubleshooting](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/troubleshooting.html). The [Raspberry Pi hotel-hotspot guide](https://www.raspberrypi.com/tutorials/host-a-hotel-wifi-hotspot/) applies only to a separate travel-router configuration with an additional Wi-Fi adapter.
 
 ### ESP32-CAM quick start
 

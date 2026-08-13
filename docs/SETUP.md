@@ -16,8 +16,10 @@ profiles are selected in Arduino IDE.
    and flash LARP Scout A. Change it to B and flash LARP Scout B.
 2. Open `firmware/larp-esp32-cam/larp_esp32_cam.ino`; set `CAMERA_ID` to A and
    flash the camera on Scout A. Repeat with B for Scout B.
-3. Change `WIFI_PASSWORD` in all four sketches and `HOTSPOT_PASSWORD` in
-   `installer/install.sh` to the same new value before deployment.
+3. Copy `HOTSPOT_PASSWORD` from the Pi's
+   `/etc/stem-research-academy/config.env` into `WIFI_PASSWORD` in all four
+   sketches before deployment. New installations generate this password
+   automatically; never add it to `installer/install.sh` or source control.
 
 ## 3. Install on the Raspberry Pi
 
