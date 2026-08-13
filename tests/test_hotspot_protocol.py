@@ -19,10 +19,10 @@ class HotspotProtocolTests(unittest.TestCase):
         self.assertIn("802-11-wireless-security.proto rsn", HOTSPOT)
         self.assertNotIn("802-11-wireless-security.key-mgmt sae", HOTSPOT)
 
-    def test_bootstrap_and_installer_use_the_larp_deployment_branch(self):
-        branch = 'REPO_BRANCH="${STEM_REPO_BRANCH:-agent/integrate-3tsahur-larp}"'
-        self.assertIn(branch, BOOTSTRAP)
-        self.assertIn(branch, INSTALLER)
+    def test_bootstrap_defaults_to_main_and_forwards_the_selected_branch(self):
+        self.assertIn('REPO_BRANCH="${STEM_REPO_BRANCH:-main}"', BOOTSTRAP)
+        self.assertIn('STEM_REPO_URL="$REPO_URL" STEM_REPO_BRANCH="$REPO_BRANCH"', BOOTSTRAP)
+        self.assertIn('REPO_BRANCH="${STEM_REPO_BRANCH:-', INSTALLER)
 
     def test_camera_reconnect_reuses_its_existing_http_server(self):
         self.assertIn("WiFi.mode(WIFI_STA)", CAMERA)
