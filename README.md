@@ -5,19 +5,40 @@
   <img alt="Raspberry Pi" src="https://img.shields.io/badge/hub-Raspberry_Pi_4-C51A4A?logo=raspberrypi&logoColor=white">
   <img alt="ESP32" src="https://img.shields.io/badge/scouts-ECHO_%2B_ESP32--CAM-111111?logo=espressif&logoColor=white">
   <img alt="Wi-Fi" src="https://img.shields.io/badge/robot_Wi--Fi-2.4_GHz_only-important">
-  <img alt="Branch" src="https://img.shields.io/badge/latest-main-success">
+  <img alt="Security" src="https://img.shields.io/badge/security-WPA2--Personal%20%2F%20RSN-blue">
+  <img alt="Branch" src="https://img.shields.io/badge/production-main-success">
 </p>
 
 > Raspberry Pi 4 mecanum hub + two Zippy/LARP differential-drive scouts + three camera feeds + one local browser dashboard.
 
 **3TSahur** is the Raspberry Pi 4 control hub. **LARP Scout A** and **LARP Scout B** are Zippy/ECHO ESP32-S3 differential-drive robots. Each LARP has its own Inland AI-Thinker-compatible ESP32-CAM. The Pi creates the local robot network, hosts the dashboard, controls 3TSahur, relays LARP video, and can optionally run YOLO11 Nano person detection.
 
+## Start here
+
+```mermaid
+flowchart LR
+    A["1 · Wire 3TSahur"] --> B["2 · Install Pi software"]
+    B --> C["3 · Verify 2.4 GHz hotspot"]
+    C --> D["4 · Flash LARP A"]
+    D --> E["5 · Verify A drive + camera"]
+    E --> F["6 · Flash LARP B"]
+    F --> G["7 · Raised-wheel safety test"]
+    G --> H["8 · Low-speed floor test"]
+```
+
+| If you are... | Go here |
+| --- | --- |
+| Building the Pi mecanum robot | [3TSahur pinout](#3tsahur-pinout) |
+| Installing the Raspberry Pi | [Pi installation](#raspberry-pi-installation) |
+| Flashing a Zippy/LARP | [Flash the ZippyLARP devices](#flash-the-zippylarp-devices) |
+| Fixing Wi-Fi/WPA problems | [Wi-Fi + WPA2 troubleshooting](#wi-fi--wpa2-troubleshooting) |
+| Fixing camera problems | [Camera pairing visual](#camera-pairing-visual) |
+| Doing the first drive test | [First-boot verification](#first-boot-verification) |
+
 ## Critical network requirement
 
 > [!IMPORTANT]
-> **Use a dedicated 2.4 GHz robot network.** The Raspberry Pi hotspot must be configured for **2.4 GHz**, and the Zippy/LARP ECHO and ESP32-CAM clients must use that 2.4 GHz network. Do not configure `3TSahur-Swarm` as a 5 GHz-only network. For this validated deployment, keep the Pi robot hotspot explicitly fixed to 2.4 GHz instead of using a dual-band/band-steered hotspot profile.
-
-The project baseline is:
+> **Use a dedicated 2.4 GHz robot network.** The Raspberry Pi hotspot must be configured for **2.4 GHz**, and the Zippy/LARP ECHO and ESP32-CAM clients must use that same 2.4 GHz network. Do not configure `3TSahur-Swarm` as 5 GHz-only. For this validated deployment, keep the Pi robot hotspot fixed to 2.4 GHz rather than relying on dual-band or band-steering behavior.
 
 | Network setting | Required project configuration |
 | --- | --- |
@@ -28,24 +49,19 @@ The project baseline is:
 | Protocol | **RSN** |
 | Pi address | `10.42.0.1` |
 
-A dual-band access point can technically include a usable 2.4 GHz network, but this project intentionally removes that ambiguity: the dedicated Pi robot hotspot is configured and validated as **2.4 GHz only**.
-
-## Quick start
-
-The current integrated project is on **`main`**, and the installer now defaults to `main`.
-
 ```mermaid
 flowchart LR
-    A["Build 3TSahur"] --> B["Install main on Pi"]
-    B --> C["Verify 2.4 GHz hotspot"]
-    C --> D["Flash Zippy/LARP A"]
-    D --> E["Verify A drive + camera"]
-    E --> F["Flash Zippy/LARP B"]
-    F --> G["Raised-wheel safety test"]
-    G --> H["Low-speed floor test"]
+    PI["Raspberry Pi 4 hotspot\n2.4 GHz · channel 6\nWPA2-Personal / RSN"] <-->|"same SSID + password"| ZA["Zippy/LARP A\nECHO ESP32-S3"]
+    PI <-->|"same SSID + password"| ZB["Zippy/LARP B\nECHO ESP32-S3"]
+    PI <-->|"same 2.4 GHz network"| CA["ESP32-CAM A"]
+    PI <-->|"same 2.4 GHz network"| CB["ESP32-CAM B"]
 ```
 
-Install on a Raspberry Pi as the normal Pi user:
+## Raspberry Pi installation
+
+Production installs use **`main`**. The `merge` branch is retained for development/integration work; if you intentionally want that branch, explicitly set `STEM_REPO_BRANCH=merge`.
+
+Install the production build as the normal Pi user:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/curl-install.sh | bash
@@ -60,6 +76,17 @@ git checkout main
 bash installer/install.sh
 ```
 
+<details>
+<summary><strong>Install the merge branch instead</strong></summary>
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/main/installer/curl-install.sh | STEM_REPO_BRANCH=merge bash
+```
+
+Use this only when you intentionally want to test the integration branch.
+
+</details>
+
 After reboot, join `3TSahur-Swarm` and open `http://10.42.0.1` or `http://3tsahur.local` when mDNS is available.
 
 The generated hotspot password is stored locally in:
@@ -70,65 +97,91 @@ The generated hotspot password is stored locally in:
 
 Copy the same SSID/password into both Zippy/LARP ECHO sketches and both ESP32-CAM sketches. Never commit the generated password to GitHub.
 
-## Setup pinout visual
+## 3TSahur pinout
 
-All GPIO numbers in this project are **BCM GPIO numbers**, not Raspberry Pi physical header-pin numbers.
+All GPIO numbers in the code are **BCM GPIO numbers**. The table below also gives the matching Raspberry Pi 40-pin header position so a builder can wire directly from the board.
+
+### Signal map
 
 ```mermaid
 flowchart LR
     PI["Raspberry Pi 4\nBCM GPIO"]
-    PI -->|"GPIO 5 / 6"| FL["Driver 1 · Channel A\nFront Left"]
-    PI -->|"GPIO 16 / 19"| RL["Driver 1 · Channel B\nRear Left"]
-    PI -->|"GPIO 20 / 21"| FR["Driver 2 · Channel A\nFront Right"]
-    PI -->|"GPIO 13 / 26"| RR["Driver 2 · Channel B\nRear Right"]
+    PI -->|"GPIO 5 → physical 29\nGPIO 6 → physical 31"| FL["Driver 1 · IN1/IN2\nFront Left"]
+    PI -->|"GPIO 16 → physical 36\nGPIO 19 → physical 35"| RL["Driver 1 · IN3/IN4\nRear Left"]
+    PI -->|"GPIO 20 → physical 38\nGPIO 21 → physical 40"| FR["Driver 2 · IN1/IN2\nFront Right"]
+    PI -->|"GPIO 13 → physical 33\nGPIO 26 → physical 37"| RR["Driver 2 · IN3/IN4\nRear Right"]
 ```
+
+### Raspberry Pi header visual
 
 ```text
-                 3TSAHUR RASPBERRY PI 4 MOTOR PINOUT
+Relevant lower section of the Raspberry Pi 4 40-pin header
+(physical pin numbers shown at the outside)
 
- Raspberry Pi 4 (BCM)                  Dual H-bridge motor drivers
- ────────────────────                  ───────────────────────────
- GPIO 5  ────────────────────────────► Driver 1 IN1 ┐
- GPIO 6  ────────────────────────────► Driver 1 IN2 ┘ Front Left
+                 Raspberry Pi 4 header
+              ┌────────────────────────┐
+ physical 29  │ GPIO5   ●  ●   GND     │ 30
+ physical 31  │ GPIO6   ●  ●   GPIO12  │ 32
+ physical 33  │ GPIO13  ●  ●   GND     │ 34
+ physical 35  │ GPIO19  ●  ●   GPIO16  │ 36
+ physical 37  │ GPIO26  ●  ●   GPIO20  │ 38
+ physical 39  │ GND     ●  ●   GPIO21  │ 40
+              └────────────────────────┘
 
- GPIO 16 ────────────────────────────► Driver 1 IN3 ┐
- GPIO 19 ────────────────────────────► Driver 1 IN4 ┘ Rear Left
-
- GPIO 20 ────────────────────────────► Driver 2 IN1 ┐
- GPIO 21 ────────────────────────────► Driver 2 IN2 ┘ Front Right
-
- GPIO 13 ────────────────────────────► Driver 2 IN3 ┐
- GPIO 26 ────────────────────────────► Driver 2 IN4 ┘ Rear Right
-
- Pi GND ─────────────────────────────► Driver logic/common ground
- External motor supply ─────────────► Motor-driver power input
-                                      (NEVER Pi 5 V)
+Use BCM numbers in software; use the physical numbers above while wiring.
 ```
 
-| Wheel | Driver | BCM GPIO pair |
-| --- | --- | --- |
-| Front left | Driver 1, IN1/IN2 | `5 / 6` |
-| Rear left | Driver 1, IN3/IN4 | `16 / 19` |
-| Front right | Driver 2, IN1/IN2 | `20 / 21` |
-| Rear right | Driver 2, IN3/IN4 | `13 / 26` |
+### Motor-driver wiring visual
 
-Do not reuse one Pi GPIO across multiple driver inputs. Keep the wheels raised for the first direction test, use a fused external motor supply, and maintain the intended common logic ground. Full details: [docs/WIRING.md](docs/WIRING.md) and [docs/SETUP.md](docs/SETUP.md).
+```text
+              3TSAHUR MOTOR CONTROL WIRING
+
+Raspberry Pi 4                  Driver 1                 Motors
+──────────────                  ────────                 ──────
+GPIO5  (pin 29) ──────────────► IN1  ┐
+GPIO6  (pin 31) ──────────────► IN2  ├───────────────► Front Left
+GPIO16 (pin 36) ──────────────► IN3  ┤
+GPIO19 (pin 35) ──────────────► IN4  ┘───────────────► Rear Left
+
+Raspberry Pi 4                  Driver 2                 Motors
+──────────────                  ────────                 ──────
+GPIO20 (pin 38) ──────────────► IN1  ┐
+GPIO21 (pin 40) ──────────────► IN2  ├───────────────► Front Right
+GPIO13 (pin 33) ──────────────► IN3  ┤
+GPIO26 (pin 37) ──────────────► IN4  ┘───────────────► Rear Right
+
+Pi GND ───────────────────────► driver logic/common ground
+External fused motor supply ─► motor-driver power input
+                               NEVER power drive motors from Pi 5 V
+```
+
+| Wheel | Driver | BCM GPIO pair | Physical Pi pins |
+| --- | --- | --- | --- |
+| Front left | Driver 1, IN1/IN2 | `5 / 6` | `29 / 31` |
+| Rear left | Driver 1, IN3/IN4 | `16 / 19` | `36 / 35` |
+| Front right | Driver 2, IN1/IN2 | `20 / 21` | `38 / 40` |
+| Rear right | Driver 2, IN3/IN4 | `13 / 26` | `33 / 37` |
+
+> [!WARNING]
+> Do not reuse one Pi GPIO across multiple driver inputs. Keep the wheels raised for the first direction test, use a fused external motor supply, and maintain the intended common logic ground.
+
+Full details: [docs/WIRING.md](docs/WIRING.md) and [docs/SETUP.md](docs/SETUP.md).
 
 ## System architecture
 
 ```mermaid
 flowchart TB
-    USER["Operator\nphone / tablet / laptop"] <-->|"Dashboard"| PI["3TSahur\nRaspberry Pi 4\n10.42.0.1"]
+    USER["Operator\nphone / tablet / laptop"] <-->|"browser dashboard"| PI["3TSahur\nRaspberry Pi 4\n10.42.0.1"]
     PI -->|"USB"| C270["Logitech C270"]
-    PI -->|"GPIO"| D1["Motor Driver 1"]
-    PI -->|"GPIO"| D2["Motor Driver 2"]
-    PI <-->|"2.4 GHz Wi-Fi"| ZA["Zippy/LARP A ECHO"]
-    PI <-->|"2.4 GHz Wi-Fi"| ZB["Zippy/LARP B ECHO"]
-    CA["ESP32-CAM A"] -->|"2.4 GHz MJPEG + registration"| PI
-    CB["ESP32-CAM B"] -->|"2.4 GHz MJPEG + registration"| PI
+    PI -->|"GPIO"| D1["Dual motor driver 1"]
+    PI -->|"GPIO"| D2["Dual motor driver 2"]
+    D1 --> ML["Front-left + rear-left motors"]
+    D2 --> MR["Front-right + rear-right motors"]
+    PI <-->|"2.4 GHz Wi-Fi"| ZA["Zippy/LARP A\nECHO controller"]
+    PI <-->|"2.4 GHz Wi-Fi"| ZB["Zippy/LARP B\nECHO controller"]
+    CA["ESP32-CAM A"] -->|"MJPEG + registration"| PI
+    CB["ESP32-CAM B"] -->|"MJPEG + registration"| PI
 ```
-
-The ECHO drive controller and ESP32-CAM on each Zippy/LARP are separate Wi-Fi clients. They do not require a GPIO connection to each other. Match their identities as `A/A` and `B/B`.
 
 ## Flash the Zippy/LARP devices
 
@@ -144,24 +197,58 @@ Arduino baseline:
 - Adafruit BusIO
 - Serial Monitor at 115200 baud
 
-```text
-Zippy/LARP A
-├── ECHO:      ROBOT_ID = 'A'
-└── ESP32-CAM: CAMERA_ID = 'A'
+### Identity pairing visual
 
-Zippy/LARP B
-├── ECHO:      ROBOT_ID = 'B'
-└── ESP32-CAM: CAMERA_ID = 'B'
+```mermaid
+flowchart LR
+    A["LARP A"] --> EA["ECHO\nROBOT_ID = A"]
+    A --> CA["ESP32-CAM\nCAMERA_ID = A"]
+    B["LARP B"] --> EB["ECHO\nROBOT_ID = B"]
+    B --> CB["ESP32-CAM\nCAMERA_ID = B"]
 ```
 
-## IPEX-1 antenna + WPA2 troubleshooting
+The ECHO drive controller and ESP32-CAM are **separate Wi-Fi clients**. They do not need a GPIO connection to each other. Their matching A/A or B/B IDs tell the Pi which drive controller and camera belong together.
+
+## Camera pairing visual
+
+```mermaid
+sequenceDiagram
+    participant CAM as ESP32-CAM
+    participant WIFI as 3TSahur-Swarm 2.4 GHz
+    participant PI as Raspberry Pi dashboard
+    participant WEB as Browser
+    CAM->>WIFI: Join with WPA2-Personal credentials
+    WIFI-->>CAM: DHCP address 10.42.0.x
+    CAM->>PI: Register CAMERA_ID + current IP
+    WEB->>PI: Open LARP A or B tab
+    PI->>CAM: Relay selected MJPEG stream
+    CAM-->>PI: Video frames
+    PI-->>WEB: /api/scouts/a|b/camera.mjpg
+```
+
+A camera can be offline while its matching ECHO robot still drives. Troubleshoot camera and drive nodes separately.
+
+## Wi-Fi + WPA2 troubleshooting
 
 > [!NOTE]
-> The **IPEX-1 connector and WPA2 are different layers of the Wi-Fi connection**. WPA2 controls authentication/encryption. The IPEX-1 connector is part of the Zippy/ECHO radio's antenna path. Correct WPA credentials will not fix a loose/damaged antenna connection, and reseating an antenna will not fix an incorrect password/security profile.
+> The **IPEX-1 connector and WPA2 are different layers**. WPA2 controls authentication/encryption. The IPEX-1 connector is part of the Zippy/ECHO radio antenna path. Correct WPA credentials will not fix a loose antenna, and reseating an antenna will not fix an incorrect password or security profile.
 
-With the Zippy powered **off**, inspect the IPEX-1 antenna connection if the robot cannot reliably see the Pi hotspot, works only at very short range, or disconnects much more often than the other robot. Make sure the tiny plug is centered and fully seated and that the antenna lead is not pinched or damaged. Avoid twisting/prying the connector.
+### What must match
 
-For authentication problems, verify the Pi uses the project's WPA2-Personal/RSN profile and the robot has the exact same SSID/password.
+```mermaid
+flowchart TD
+    P["Pi hotspot"] --> B["2.4 GHz · channel 6"]
+    P --> S["WPA2-Personal / wpa-psk"]
+    P --> R["RSN"]
+    P --> N["SSID + password"]
+    B --> Z["Zippy/ECHO joins"]
+    S --> Z
+    R --> Z
+    N --> Z
+    A["IPEX-1 antenna physically seated"] --> Z
+```
+
+With the Zippy powered **off**, inspect the IPEX-1 connector if the robot cannot reliably see the Pi hotspot, works only at very short range, or disconnects much more often than the other robot. Make sure the tiny plug is centered and fully seated; do not pry sideways on it.
 
 Check the Pi's non-secret Wi-Fi settings with:
 
@@ -170,7 +257,7 @@ nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel conne
 nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connection show stem-robot-hotspot
 ```
 
-Expected values include:
+Expected values:
 
 ```text
 SSID:      3TSahur-Swarm
@@ -180,25 +267,50 @@ Key mgmt:  wpa-psk
 Protocol:  rsn
 ```
 
-Do not switch the dedicated robot hotspot to WPA3-only/SAE or 5 GHz-only operation.
-
 ### Wi-Fi fault-isolation visual
 
 ```mermaid
 flowchart TD
     A["Zippy will not connect"] --> B{"Can it see 3TSahur-Swarm?"}
-    B -- No --> C["Verify Pi is 2.4 GHz only / channel 6"]
+    B -- No --> C["Verify Pi hotspot is fixed to 2.4 GHz / channel 6"]
     C --> D["Power Zippy OFF and inspect IPEX-1 antenna"]
-    B -- Yes --> E{"Does Zippy obtain an IP?"}
+    B -- Yes --> E{"Does Zippy obtain 10.42.0.x?"}
     E -- No --> F["Verify exact SSID/password + WPA2-PSK / RSN"]
     E -- Yes --> G{"Dashboard heartbeat?"}
     G -- No --> H["Check ROBOT_ID + dashboard service"]
     G -- Yes --> I["Wi-Fi path is healthy"]
 ```
 
-The full symptom-by-symptom guide is in **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
+<details>
+<summary><strong>Common WPA / antenna symptoms</strong></summary>
+
+| Symptom | Most likely area | First check |
+| --- | --- | --- |
+| Hotspot not visible at all | Pi hotspot/band | Confirm `bg`, channel 6, hotspot service |
+| Zippy sees SSID but never gets IP | WPA/credentials | Exact password, `wpa-psk`, `rsn` |
+| Works only inches from Pi | Antenna/RF | Power off; reseat IPEX-1, inspect lead |
+| One Zippy works, the other does not | Per-robot config/hardware | Compare ID, password, antenna, power |
+| Gets IP but dashboard says offline | Registration/app | Check `ROBOT_ID` and dashboard service |
+| Camera offline but drive works | Camera node | Check ESP32-CAM power/ID/registration |
+
+</details>
+
+Full guide: **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)**.
 
 ## Dashboard controls
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│             3TSAHUR-SWARM LOCAL COMMAND CENTER             │
+├─────────────────┬──────────────────┬────────────────────────┤
+│    3TSahur      │   LARP Scout A   │    LARP Scout B        │
+├─────────────────┴──────────────────┴────────────────────────┤
+│ Selected camera feed       │ Selected robot controls        │
+│ Snapshot / optional vision │ Speed / status / stop          │
+├────────────────────────────┴─────────────────────────────────┤
+│ STOP ALL (Esc) · health · CSI · timeline · gamepad         │
+└─────────────────────────────────────────────────────────────┘
+```
 
 | Robot | Keys | Action |
 | --- | --- | --- |
@@ -212,7 +324,7 @@ The full symptom-by-symptom guide is in **[docs/TROUBLESHOOTING.md](docs/TROUBLE
 
 The Pi drivetrain watchdog is 200 ms. Releasing controls, losing the client, or missing command refreshes stops motion.
 
-## Verify the complete system
+## First-boot verification
 
 ```mermaid
 flowchart TD
@@ -220,21 +332,35 @@ flowchart TD
     H -- No --> HS["Check hotspot service + band"]
     H -- Yes --> D{"Dashboard opens?"}
     D -- No --> DS["Check dashboard service"]
-    D -- Yes --> A["Power Zippy/LARP A only"]
-    A --> AH{"Heartbeat + camera?"}
-    AH -- Yes --> AT["Raised-wheel drive test"]
-    AT --> B["Repeat for B"]
-    B --> ALL["Emergency-stop test"]
+    D -- Yes --> C{"C270 works?"}
+    C -- Yes --> A["Power LARP A only"]
+    A --> AH{"A heartbeat + camera?"}
+    AH -- Yes --> AT["Raised-wheel A drive test"]
+    AT --> B["Repeat for LARP B"]
+    B --> ALL["Test Space + Esc + network-loss stop"]
     ALL --> FLOOR["Low-speed floor test"]
 ```
 
-Useful Pi checks:
+<details>
+<summary><strong>First-boot command checklist</strong></summary>
 
 ```bash
 sudo systemctl status stem-robot-hotspot --no-pager
 sudo systemctl status stem-robot-dashboard --no-pager
 curl --fail http://127.0.0.1:8080/healthz
+nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel connection show stem-robot-hotspot
+nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connection show stem-robot-hotspot
 ```
+
+Pass conditions:
+
+- hotspot is visible as `3TSahur-Swarm`;
+- band reports `bg` and channel `6`;
+- security reports `wpa-psk` and `rsn`;
+- dashboard health endpoint succeeds;
+- only then power one LARP at a time and verify its heartbeat.
+
+</details>
 
 ## Optional vision
 
