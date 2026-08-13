@@ -30,12 +30,12 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    USER["Operator\nphone / tablet / laptop"] <-->|"local dashboard"| HUB["3TSAHUR\nRaspberry Pi 4"]
+    USER["Operator<br/>phone / tablet / laptop"] <-->|"local dashboard"| HUB["3TSAHUR<br/>Raspberry Pi 4"]
     HUB --> C270["Logitech C270"]
     HUB --> D1["Dual motor driver 1"]
     HUB --> D2["Dual motor driver 2"]
-    HUB <-->|"2.4 GHz Wi-Fi"| LA["LARP A\nECHO controller"]
-    HUB <-->|"2.4 GHz Wi-Fi"| LB["LARP B\nECHO controller"]
+    HUB <-->|"2.4 GHz Wi-Fi"| LA["LARP A<br/>ECHO controller"]
+    HUB <-->|"2.4 GHz Wi-Fi"| LB["LARP B<br/>ECHO controller"]
     CA["ESP32-CAM A"] --> HUB
     CB["ESP32-CAM B"] --> HUB
 ```
@@ -58,7 +58,7 @@ Current design priorities are reliable manual control, independent robot/camera 
 
 ```mermaid
 flowchart LR
-    PI["Pi hotspot\n2.4 GHz · ch 6\nWPA2 / RSN"] <-->|"same credentials"| A["LARP A"]
+    PI["Pi hotspot<br/>2.4 GHz · ch 6<br/>WPA2 / RSN"] <-->|"same credentials"| A["LARP A"]
     PI <-->|"same credentials"| B["LARP B"]
     PI <-->|"same network"| CA["CAM A"]
     PI <-->|"same network"| CB["CAM B"]
@@ -89,10 +89,10 @@ The code uses **BCM GPIO numbering**.
 
 ```mermaid
 flowchart LR
-    PI["Raspberry Pi 4"] -->|"GPIO 5 / 6"| FL["Driver 1\nFront Left"]
-    PI -->|"GPIO 16 / 19"| RL["Driver 1\nRear Left"]
-    PI -->|"GPIO 20 / 21"| FR["Driver 2\nFront Right"]
-    PI -->|"GPIO 13 / 26"| RR["Driver 2\nRear Right"]
+    PI["Raspberry Pi 4"] -->|"GPIO 5 / 6"| FL["Driver 1<br/>Front Left"]
+    PI -->|"GPIO 16 / 19"| RL["Driver 1<br/>Rear Left"]
+    PI -->|"GPIO 20 / 21"| FR["Driver 2<br/>Front Right"]
+    PI -->|"GPIO 13 / 26"| RR["Driver 2<br/>Rear Right"]
 ```
 
 | Wheel | Driver inputs | BCM GPIO | Physical pins |
@@ -165,6 +165,101 @@ nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connec
 
 Verify hotspot → dashboard → C270 → LARP A → LARP B → emergency stop/network-loss stopping, in that order. Power and test one scout at a time before testing the full system.
 
+## YOLO11 Nano person detection
+
+3TSAHUR supports **optional local person detection** using pretrained **Ultralytics YOLO11 Nano (`yolo11n`)** exported to **NCNN** for Raspberry Pi 4 inference. The standard pretrained weights use the COCO dataset; this project initially limits inference to COCO class `0` (`person`). No custom dataset collection, labeling, or training is required for the baseline setup.
+
+> [!IMPORTANT]
+> YOLO is an **operator aid**, not a safety decision system, identity system, or guaranteed human detector. A missed detection does not prove an area is empty, and a detection should be confirmed by the operator and other available sensor information.
+
+### How vision fits into the robot
+
+```mermaid
+flowchart LR
+    CAM["Selected camera<br/>C270 or LARP ESP32-CAM"] --> FRAME["Video frame"]
+    FRAME --> YOLO["YOLO11 Nano<br/>NCNN · 320 px"]
+    YOLO --> PERSON["Person boxes<br/>+ confidence"]
+    PERSON --> UI["3TSAHUR dashboard"]
+    DRIVE["Robot drive command"] --> PAUSE["Pause vision work"]
+    PAUSE --> YOLO
+```
+
+Vision is deliberately isolated from the core motor-control path. It runs in a separate worker, starts disabled after a dashboard restart, and pauses while a 3TSAHUR or LARP drive command is active so inference does not compete with control responsiveness.
+
+### Install YOLO11 Nano
+
+Complete and verify the base robot installation first. Then run the optional installer as the **normal Raspberry Pi user**, without `sudo`:
+
+```bash
+cd ~/STEMResearchAcademy
+bash installer/install-vision.sh
+```
+
+The installer:
+
+1. Creates `~/STEMResearchAcademy/.vision-venv` with system site packages.
+2. Installs `ultralytics>=8.3,<9` and `ncnn`.
+3. Downloads the pretrained `yolo11n.pt` weights.
+4. Exports an NCNN model at **320 px** to `yolo11n_ncnn_model/`.
+5. Verifies that the dashboard Python runtime can import the vision packages and load the exported model.
+6. Records the vision environment in `/etc/stem-research-academy/config.env`.
+7. Restarts `stem-robot-dashboard.service`.
+
+Internet access is needed for the initial package/model download and export. Normal inference can operate locally afterward as long as the exported model and environment remain installed.
+
+### Recommended Raspberry Pi 4 settings
+
+| Setting | Baseline | Reason |
+| --- | --- | --- |
+| Model | `yolo11n_ncnn_model` | Small YOLO11 detector suitable for edge testing |
+| Input size | `320` | Reduces Pi CPU load versus larger inputs |
+| Detection class | `person` / class `0` | Keeps the initial research task focused |
+| Confidence | `0.45` | Initial test threshold; validate experimentally |
+| Inference target | **2–5 FPS** | Leaves resources for control and video |
+| Active sources | **One camera at a time** | Avoids unnecessary Pi/Wi-Fi contention |
+
+### Enable vision from the dashboard
+
+After the installer succeeds, reload the dashboard, select **3TSAHUR**, **LARP A**, or **LARP B**, and use that tab's **Vision** control or press `C`. Vision state is maintained per camera feed. Press `C` again to stop future inference on the selected feed.
+
+The dashboard can use the Logitech C270 or the currently selected Pi-relayed LARP ESP32-CAM stream. Before using LARP vision, first confirm that the ESP32-CAM has registered with the Pi and that ordinary video works without YOLO enabled.
+
+### Verify YOLO before driving
+
+A useful validation order is:
+
+```mermaid
+flowchart LR
+    A["Base robot controls pass"] --> B["Camera stream passes"]
+    B --> C["Install YOLO"]
+    C --> D["Stationary person-detection test"]
+    D --> E["Raised-wheel control test<br/>with vision enabled"]
+    E --> F["Low-speed field test"]
+```
+
+Run the repository tests first:
+
+```bash
+cd ~/STEMResearchAcademy
+.venv/bin/python -m unittest discover -s tests -v
+```
+
+Then enable vision while the chassis is stationary and verify that a person in view can produce a labelled bounding box and confidence score. Next, with wheels raised, verify that drive controls, `Space`, and `Esc` remain responsive. If inference causes control latency, excessive temperature, Wi-Fi degradation, or power instability, reduce the vision workload or disable it during motion.
+
+### YOLO troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `Vision unavailable` | Confirm `.vision-venv`, `VISION_SITE_PACKAGES`, and `yolo11n_ncnn_model/` exist |
+| Installer says application is missing | Run the base 3TSAHUR installer first |
+| C270 has no detections | Verify camera works normally, lighting, subject visibility, and confidence threshold |
+| LARP vision unavailable | Verify the ESP32-CAM registers and streams normally before enabling YOLO |
+| Model/package download fails | Check internet access and available storage, then rerun the vision installer |
+| Dashboard works but vision does not | Check `stem-robot-dashboard` logs and the vision environment; core driving should remain independent |
+| Control/video performance drops | Use one active vision source, 320 px input, low inference rate, or disable vision during motion |
+
+A missing model, missing package, unreachable camera, or failed inference should **not** disable driving, emergency stop, the motor watchdog, normal camera streaming, or CSI status. Detailed installation, manual export, preview, and benchmarking instructions are in [docs/VISION_SETUP.md](docs/VISION_SETUP.md).
+
 ## Future research and recommended improvements
 
 The current platform is a strong teleoperated research baseline, but a first-responder reconnaissance system can be improved substantially. Future work should be measured against three questions: **Does it increase useful situational awareness? Does it make the system more reliable in degraded environments? Does it reduce operator workload without removing meaningful human control?**
@@ -187,77 +282,64 @@ flowchart LR
 
 ### 1. Localization, mapping, and navigation
 
-The current system is primarily operator-driven. A major research direction is adding wheel encoders and an IMU to 3TSAHUR and the LARPs, then evaluating odometry, visual-inertial odometry, or SLAM. LiDAR, depth cameras, or stereo vision could provide obstacle geometry and improve navigation where GPS is unavailable. Useful semi-autonomous functions would include assisted obstacle avoidance, return-to-home, waypoint driving, automatic stopping near hazards, and maintaining a safe communications link. These should remain overrideable by the operator.
+Add wheel encoders and an IMU to 3TSAHUR and the LARPs, then evaluate odometry, visual-inertial odometry, or SLAM. LiDAR, depth cameras, or stereo vision could provide obstacle geometry where GPS is unavailable. Useful semi-autonomous functions include assisted obstacle avoidance, return-to-home, waypoint driving, automatic stopping near hazards, and communications-aware navigation, all with immediate operator override.
 
 ### 2. Sensor fusion for first-responder reconnaissance
 
-RGB video alone cannot characterize many hazards. Future sensor packages could investigate thermal imaging, depth sensing, ambient temperature/humidity, smoke/particulate sensing, carbon monoxide or other appropriately calibrated gas sensing, microphone/audio, light level, and structural/vibration measurements. Research should focus on fusing these sources into a simple operator display rather than overwhelming the user with raw telemetry. Any safety-critical environmental sensor would require proper calibration and should not be treated as certified life-safety equipment without appropriate validation.
+Future sensor packages could investigate thermal imaging, depth sensing, ambient temperature/humidity, smoke/particulate sensing, appropriately calibrated gas sensing, audio, light level, and structural/vibration measurements. Research should focus on combining these sources into a simple operator display rather than overwhelming the user with raw telemetry. Prototype environmental sensing must not be represented as certified life-safety equipment without appropriate validation.
 
 ### 3. CSI human-presence research
 
-Wi-Fi Channel State Information is particularly interesting because it could complement cameras when visibility is poor or a person is partially occluded. Future work should collect controlled CSI datasets across different rooms, wall materials, robot orientations, distances, antenna positions, moving machinery, and numbers of occupants. Performance should be reported with false-positive/false-negative rates rather than only demonstration accuracy. Combining CSI with thermal/RGB/depth observations could be compared against CSI alone.
+Collect controlled Wi-Fi Channel State Information datasets across rooms, wall materials, distances, antenna orientations, moving machinery, and occupant counts. Report false-positive and false-negative rates. Compare CSI alone with CSI fused with RGB, thermal, or depth observations.
 
 ### 4. Communications resilience
 
-The fixed 2.4 GHz hotspot is appropriate for the current ECHO/ESP32 deployment, but it is also a single communications dependency. Future versions could study a dedicated second radio on 3TSAHUR, external antennas, better antenna placement, automatic channel selection, mesh or relay nodes, store-and-forward telemetry, and a separate high-bandwidth backhaul where compatible hardware is available. The control channel should remain isolated from bandwidth-heavy video/AI traffic. Research should measure latency, packet loss, range, recovery time, and emergency-stop behavior under congestion and partial link failure.
+Study a dedicated second radio, external/protected antennas, improved antenna placement, mesh/relay nodes, store-and-forward telemetry, and separate backhaul where compatible. Keep command traffic isolated from video/AI load. Measure latency, packet loss, range, recovery time, and emergency-stop behavior under link degradation.
 
 ### 5. Closed-loop drivetrain control
 
-The present GPIO motor interface is simple and effective for prototyping, but encoders and current sensing would enable closed-loop wheel-speed control, more repeatable mecanum motion, stall detection, traction analysis, and better odometry. Future motor electronics could add hardware PWM, per-channel current measurement, thermal monitoring, and protection appropriate to the selected motors and battery system.
+Add encoders and current sensing for closed-loop wheel-speed control, repeatable mecanum motion, stall detection, traction analysis, and improved odometry. Future motor electronics could add hardware PWM, per-channel current measurement, thermal monitoring, and appropriate protection.
 
 ### 6. Power and endurance
 
-Add battery voltage/current telemetry and log energy use by drivetrain, cameras, Wi-Fi, and AI workloads. This would make it possible to estimate mission time instead of relying on a simple battery percentage guess. Future research could compare battery chemistry/capacity, regulated power architecture, swappable packs, low-voltage shutdown behavior, and whether the LARPs can return to 3TSAHUR or a charging point before reaching a critical battery level.
+Add battery voltage/current telemetry and log energy use by drivetrain, cameras, Wi-Fi, and AI workloads so mission time can be measured and estimated. Compare battery capacity, regulated power architecture, swappable packs, low-voltage shutdown, and autonomous low-battery return behavior.
 
 ### 7. Edge AI and perception
 
-YOLO11 Nano provides a useful starting point for local perception. Future experiments could compare NCNN, TensorFlow Lite, ONNX/runtime alternatives, or dedicated accelerators while measuring inference latency, power consumption, CPU temperature, video latency, and control responsiveness. Detection should expand only when it supports a clear responder task—for example person detection, doorway/egress identification, hazard-marker recognition, or change detection. AI output should be presented as decision support with confidence/uncertainty, not as guaranteed truth.
+Use the current YOLO11 Nano/NCNN baseline as a measured starting point. Future experiments can compare TensorFlow Lite, ONNX/runtime alternatives, tracking such as ByteTrack, or dedicated accelerators while recording inference latency, power, CPU temperature, video latency, and control responsiveness. Expand perception only for clear responder tasks and display confidence/uncertainty rather than presenting AI output as guaranteed truth.
 
 ### 8. Multi-robot coordination
 
-With two LARPs and a central hub, the project can study coordinated reconnaissance. Examples include assigning scouts to different rooms, automatically maintaining radio coverage, sharing a common map, avoiding duplicate exploration, and handing off camera/sensor observations between robots. A useful research question is how much coordination can be automated before the interface becomes harder for one responder to supervise.
+Study shared maps, task allocation, communications-aware scout placement, duplicate-exploration avoidance, and observation handoff between 3TSAHUR and the LARPs. Measure whether automation actually lowers operator workload.
 
 ### 9. Mechanical ruggedization
 
-Future chassis work should evaluate impact protection, cable strain relief, connector retention, antenna protection, wheel guards, camera protection, dust/water resistance, thermal management, and serviceability. The LARP IPEX-1 connection deserves particular attention because a mechanically protected antenna installation could reduce field failures. 3TSAHUR could also be evaluated for payload mounting, sensor mast/gimbal designs, ramps, and modular sensor bays.
+Improve impact protection, strain relief, connector retention, antenna protection, wheel/camera guards, dust/water resistance, cooling, and serviceability. The LARP IPEX-1 antenna connection is a particularly useful target for mechanical protection.
 
 ### 10. Human factors and dashboard design
 
-A technically capable robot can still fail operationally if its interface creates too much cognitive load. Conduct timed user studies with representative tasks: select a robot, identify a target, recover from a lost camera, recognize a low battery, issue an emergency stop, and determine which robot produced an observation. Compare keyboard, touchscreen, and gamepad control; test large status indicators, map views, alert prioritization, and accessibility in gloves/low-light conditions.
+Conduct timed user studies for robot selection, target identification, lost-camera recovery, low-battery recognition, emergency stopping, and source identification. Compare keyboard, touchscreen, and gamepad control and test the interface in low-light and gloved-use scenarios.
 
 ### 11. Reliability, cybersecurity, and failure testing
 
-Future research should intentionally test failure modes: camera loss, scout reboot, Pi service restart, corrupted/late commands, Wi-Fi congestion, low battery, sensor failure, stalled motors, and loss of the operator browser. Add structured logging and mission replay so failures can be reproduced. Security work could include device authentication beyond a shared WLAN password, credential rotation, signed firmware/software releases, least-privilege services, and protection of recorded mission data.
+Deliberately test camera loss, scout reboot, Pi service restart, delayed commands, congestion, low battery, stalled motors, and browser loss. Add structured mission logs/replay. Future security work can study stronger device authentication, credential rotation, signed releases, least-privilege services, and protection of mission recordings.
 
 ### 12. Field-validation methodology
 
-The most important next step is repeatable testing rather than simply adding features. Build a test matrix covering open rooms, hallways, corners, multiple floors, obstacles, low light, smoke-like visual obstruction using safe test methods, RF interference, and increasing robot-to-hub distance. Record command latency, video latency, packet loss, reconnection time, battery endurance, detection accuracy, operator task time, and failure-recovery success. Comparing each hardware/software change against the same baseline will show whether it actually improves the reconnaissance mission.
+Create a repeatable test matrix covering rooms, hallways, corners, obstacles, low light, safe simulated visibility degradation, RF interference, and increasing range. Record command/video latency, packet loss, reconnection time, endurance, detection accuracy, operator task time, and recovery success.
 
-### Suggested research priority
-
-| Priority | Research area | Why it matters |
+| Priority | Research area | Why |
 | --- | --- | --- |
-| 1 | Reliability + field test instrumentation | Establishes trustworthy baseline data |
-| 2 | Encoders/IMU + battery telemetry | Improves control, localization, and mission awareness |
-| 3 | Communications resilience | Directly affects control/video availability |
-| 4 | Thermal/depth/environmental sensing | Adds information responders cannot get from RGB alone |
-| 5 | CSI validation + sensor fusion | Tests the project's distinctive non-camera sensing concept |
-| 6 | SLAM + assisted navigation | Reduces workload in complex environments |
-| 7 | Edge-AI optimization | Adds perception without sacrificing control latency |
-| 8 | Multi-robot autonomy | Builds on a reliable, measured lower-level system |
+| 1 | Reliability + instrumentation | Establish a trustworthy baseline |
+| 2 | Encoders/IMU + battery telemetry | Improve control and mission awareness |
+| 3 | Communications resilience | Protect control/video availability |
+| 4 | Thermal/depth/environment sensing | Add information beyond RGB video |
+| 5 | CSI validation + sensor fusion | Test the distinctive non-camera sensing concept |
+| 6 | SLAM + assisted navigation | Reduce workload in complex environments |
+| 7 | Edge-AI optimization | Add perception without sacrificing control latency |
+| 8 | Multi-robot autonomy | Build on a reliable measured platform |
 
-The recommended research strategy is **instrument first, establish a baseline, change one subsystem at a time, and compare measured results**. That approach makes the project useful not only as a robot demonstration but as a reproducible research platform.
-
-## Optional vision
-
-After drive, stop, hotspot, and camera behavior are stable:
-
-```bash
-cd ~/STEMResearchAcademy
-bash installer/install-vision.sh
-```
-
-Optional vision is isolated from the core control path and should pause during active robot motion so perception work does not compromise command responsiveness. See [docs/VISION_SETUP.md](docs/VISION_SETUP.md).
+**Recommended research strategy:** instrument first, establish a baseline, change one subsystem at a time, and compare measured results.
 
 ## Documentation
 
@@ -267,7 +349,7 @@ Optional vision is isolated from the core control path and should pause during a
 - [ESP32-CAM setup](docs/ESP32_CAM_SETUP.md) — AI Thinker upload wiring and camera pin map.
 - [LARP camera/controller integration](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md) — identity pairing and field testing.
 - [Latency tuning](docs/LATENCY_TUNING.md) — control-priority behavior.
-- [Vision setup](docs/VISION_SETUP.md) — optional YOLO11 Nano / NCNN installation.
+- [Vision setup](docs/VISION_SETUP.md) — complete YOLO11 Nano / NCNN installation, verification, and benchmarking.
 - [Robot naming](docs/ROBOT_NAMES.md) — canonical project names and acronym expansions.
 
 ## Safety
