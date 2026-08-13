@@ -41,6 +41,90 @@ flowchart LR
     LB --- CB
 ```
 
+## Recreate this exact prototype
+
+Use this section as the build inventory and order of operations. It recreates
+the documented 3TSahur hub, two LARP Scout drive boards, and two independent
+ESP32-CAM video nodes. Do **not** substitute an unverified board profile,
+power supply, motor driver, or antenna arrangement and assume it is equivalent;
+record the substitution and validate that subsystem first.
+
+### Bill of materials and tools
+
+| Qty. | Item | Used for | Reproduction note |
+| ---: | --- | --- | --- |
+| 1 | Raspberry Pi 4 Model B (4 GB) | Hub, dashboard, local hotspot, C270 video, optional vision | Use current 64-bit Raspberry Pi OS and cooling. |
+| 1 | MicroSD card, 32 GB or larger | Pi operating system and application storage | Use a reliable card; retain a working image before updates. |
+| 1 | 5 V / 3 A-or-greater Pi supply | Pi power | This is separate from motor and servo power. |
+| 1 | Logitech C270 USB camera | Hub video feed | A powered USB hub is useful if the Pi reports USB-power problems. |
+| 1 | Mecanum chassis with 4 compatible DC gearmotors and wheels | 3TSahur movement | Label wheels front-left, rear-left, front-right, rear-right before wiring. |
+| 2 | Dual-channel H-bridge motor drivers | Four hub-motor channels | Confirm the driver current rating and logic-voltage compatibility. |
+| 1 | Fused motor battery, switch, wiring, and common logic ground | Hub motor power | Never power motors from the Pi 5 V rail. |
+| 2 | 3DBuffalo ECHO/Zippy-based drive controllers | LARP Scout A and B drive control | Each needs its own configured identity: `A` or `B`. |
+| 2 | IPEX-1 external antennas | ECHO 2.4 GHz Wi-Fi link | Seat straight down with power off; route away from motor wiring. |
+| 2 | Inland ESP32-CAM boards with matching camera modules | LARP Scout A and B video | Flash as the AI Thinker-compatible camera profile in this project. |
+| 2 | Stable regulated 5 V camera supplies (1 A or more each) | ESP32-CAM power | Keep camera power separate from ECHO logic and motor terminals. |
+| 1 | USB data cable / 3.3 V-safe USB-to-serial flasher | Board upload and serial logs | A charge-only USB cable cannot flash an ESP32. |
+| 1 | Phone, tablet, laptop, or Pi display with 2.4 GHz Wi-Fi | Operator dashboard | A browser gamepad is optional; it is not Pi-side hardware. |
+| Optional | Servo-driver board, separate servo power, pan/tilt and ramp servos | Future gimbal/ramp actuation | The current UI stages these controls; it does not drive servos yet. |
+| Optional | Internet access during initial setup | Installer and optional YOLO setup | Normal field operation is local and does not require cloud access. |
+
+**Software required before flashing:** Arduino IDE, `esp32 by Espressif
+Systems` **3.0.7**, ECHO **EchoLib 1.3.0**, and Adafruit BusIO. Use
+**ESP32S3 Dev Module** for the ECHO sketch and **AI Thinker ESP32-CAM** for the
+camera sketch. Open the exact `.ino` files linked in [Flash the LARP
+firmware](#flash-the-larp-firmware); Arduino requires each sketch name to
+match its containing folder.
+
+### Rebuild order and pass conditions
+
+```mermaid
+flowchart LR
+    A["1. Assemble Pi hub\nno motor power"] --> B["2. Install dashboard\nand create hotspot"]
+    B --> C["3. Verify Pi UI\nand C270"]
+    C --> D["4. Flash ECHO A\nidentity A"]
+    D --> E["5. Confirm A heartbeat\nthen raised-wheel drive"]
+    E --> F["6. Flash ESP32-CAM A\nidentity A"]
+    F --> G["7. Confirm A stream\nthrough dashboard"]
+    G --> H["8. Repeat B\nwith identity B"]
+    H --> I["9. Floor test\none stream active"]
+    I --> J["10. Optional CSI\nthen optional YOLO"]
+```
+
+| Step | Do this | A successful result looks like |
+| --- | --- | --- |
+| 1 | Assemble the Pi, C270, motor drivers, and wheels with motor battery disconnected. | Pi boots; no motor can move accidentally. |
+| 2 | Run the installer on the Pi and start the `3TSahur-Swarm` hotspot. | A phone can see the hotspot and open `http://10.42.0.1`. |
+| 3 | Confirm the dashboard and C270 first. | The hub tab loads and the C270 reports a usable feed. |
+| 4-5 | Configure and flash ECHO A with matching SSID/password and `ROBOT_ID = 'A'`. | Serial Monitor shows a DHCP address; dashboard shows Scout A online. |
+| 6-7 | Configure and flash camera A with the same credentials and `CAMERA_ID = 'A'`. | Serial Monitor says `Camera registered with Pi dashboard.` and the A tab shows video. |
+| 8 | Repeat the controller then camera procedure for B, using only identity `B`. | B appears independently; A remains controllable. |
+| 9 | With wheels raised, test every direction and `Space`/`Esc`; then do a low-speed floor test. | Each stop path immediately removes motion. |
+| 10 | Calibrate CSI with the scene clear. Install and enable YOLO only after base control and video are stable. | Optional analysis can fail or be disabled without breaking drive/stop controls. |
+
+### Configuration that must agree
+
+```mermaid
+flowchart TB
+    PI["Pi hotspot\n3TSahur-Swarm\n10.42.0.1/24\n2.4 GHz channel 6\nWPA2-Personal / RSN"]
+    EA["ECHO A\nROBOT_ID = A"] --> PI
+    CA["ESP32-CAM A\nCAMERA_ID = A"] --> PI
+    EB["ECHO B\nROBOT_ID = B"] --> PI
+    CB["ESP32-CAM B\nCAMERA_ID = B"] --> PI
+    EA --- CA
+    EB --- CB
+```
+
+- Put the identical hotspot SSID and password into the Pi configuration and
+  all four ESP32 sketches. Do not commit the password.
+- Keep the Pi at `10.42.0.1/24`, WPA2-Personal/RSN, 2.4 GHz, and channel 6
+  unless the firmware is changed and reflashed together.
+- The ECHO and ESP32-CAM are separate Wi-Fi clients. Matching `A`/`A` or
+  `B`/`B` is an identity convention, not a cable connection between boards.
+- The Pi dashboard is the control hub. Core drive, stop, watchdog, and
+  current-camera selection must remain usable if CSI, snapshots, gamepad,
+  vision, or timeline features are unavailable.
+
 ## Reproduction methodology
 
 This project is designed as a local-first system: the Pi hosts the Wi-Fi
@@ -623,6 +707,59 @@ For the complete LARP-level procedure—including power separation, when an
 Arduino can safely act as a serial bridge, controller/camera pairing, and a
 field-test checklist—read the [LARP camera/controller integration guide](docs/LARP_CAMERA_CONTROLLER_INTEGRATION.md).
 
+## Common errors and troubleshooting
+
+The table below records the problems encountered during this project and the
+shortest safe path to isolate them. Change **one variable at a time**. A
+working Scout A is a reference system: use it to compare Scout B rather than
+changing hotspot settings, antenna placement, firmware, and power at once.
+
+```mermaid
+flowchart TD
+    Start["A LARP feature fails"] --> Hotspot{"Is 3TSahur-Swarm\nvisible and dashboard reachable?"}
+    Hotspot -- No --> Pi["Check Pi hotspot and\ndashboard services"]
+    Hotspot -- Yes --> Board{"Does the board\nshow a DHCP address?"}
+    Board -- No --> WiFi["Check SSID/password,\n2.4 GHz/WPA2, IPEX-1, range"]
+    Board -- Yes --> Role{"Controller or camera?"}
+    Role -- Controller --> Drive["Check A/B ID, heartbeat,\nthen raised-wheel test"]
+    Role -- Camera --> Video["Check AI Thinker profile,\n5 V power, registration log"]
+    Drive --> Result["Test stop and command path"]
+    Video --> Result
+```
+
+| What was observed | Likely cause | What to do now |
+| --- | --- | --- |
+| Arduino IDE reports a fatal compile error and points to Espressif documentation. | Wrong board package/profile, missing EchoLib or BusIO, a sketch opened from the wrong folder, or an unsupported library version. | Use Espressif `esp32` 3.0.7; select ESP32S3 Dev Module for ECHO or AI Thinker ESP32-CAM for the camera; install EchoLib 1.3.0 and Adafruit BusIO; open the exact linked `.ino` file. |
+| `Failed to connect to ESP32-S3: No serial data received` while uploading the second ECHO. | This is a bootloader/USB path problem after compilation, not a Wi-Fi or antenna problem. | Close Serial Monitor; use a known data cable; select the correct port; hold **PROG**, tap **RESET**, wait for the port, then upload at 115200. Compare with the working board. |
+| The ECHO keeps printing retries and never joins the Pi hotspot. | Credentials do not match, hotspot is not 2.4 GHz WPA2/RSN, the IPEX-1 connector is not seated, or range/interference is poor. | Test beside the Pi with motors off; confirm `bg`, channel 6, `wpa-psk`, and `rsn`; reflash matching credentials; reseat and re-route the antenna with power off. |
+| A Scout has an IP address but still appears offline in the dashboard. | The Pi dashboard service is not healthy or the board identity is not `A`/`B` as expected. | Check `stem-robot-dashboard`, run its local health endpoint, and verify `ROBOT_ID` before reflashing. |
+| The camera does not show in the matching LARP tab. | The camera is a separate Wi-Fi node, has the wrong `CAMERA_ID`, used the wrong camera profile, lacks stable 5 V power, or did not register its DHCP address. | Read the camera serial log. It must show both a stream address and `Camera registered with Pi dashboard.` Reflash the AI Thinker profile if initialization fails. |
+| Drive works but the matching camera is offline. | Expected failure isolation: the ECHO and ESP32-CAM do not depend on each other at runtime. | Keep control available; troubleshoot only the camera node. Do not rewire the ECHO motor controller to fix video. |
+| Controls stop after a brief connection loss or after releasing a key. | The command-expiry/watchdog safety path is intentionally stopping the robot. | Confirm network stability and browser focus. Treat this as a safety behavior, not a motor-driver failure. Test it with wheels raised. |
+| Video is slow, freezes, or control feels delayed. | Multiple video streams, radio congestion, weak signal, optional vision work, or motor-related interference can consume capacity. | Keep only the selected LARP stream open, use the control-priority profile, stop robots before snapshots/profile changes, and test close to the Pi with motors off. |
+| YOLO toggle reports unavailable or is too slow. | The optional vision environment/model is not installed, or the Pi cannot sustain that workload with the current camera/profile. | Complete [VISION_SETUP.md](docs/VISION_SETUP.md), restart the dashboard, then enable vision for one selected feed only. Leave it off during control validation. |
+| Scout A and B appear to control the wrong device or compete. | Duplicate/mismatched `ROBOT_ID`/`CAMERA_ID` values. | Power one device at a time and verify A uses `A` and B uses `B` in both its controller and camera sketches. |
+
+### Capture these facts before changing code
+
+These checks separate a configuration problem from a code problem without
+printing the Wi-Fi password:
+
+```bash
+# On the Pi
+sudo systemctl status stem-robot-hotspot --no-pager
+sudo systemctl status stem-robot-dashboard --no-pager
+curl --fail http://127.0.0.1:8080/healthz
+nmcli -f 802-11-wireless.ssid,802-11-wireless.band,802-11-wireless.channel connection show stem-robot-hotspot
+nmcli -f 802-11-wireless-security.key-mgmt,802-11-wireless-security.proto connection show stem-robot-hotspot
+```
+
+Then capture a 115200-baud serial log from the one affected ECHO or
+ESP32-CAM, its configured `A`/`B` identity, the board profile selected in
+Arduino IDE, and whether it works beside the Pi with motors turned off. The
+[field information checklist](docs/FIELD_INFORMATION_CHECKLIST.md) lists the
+same evidence in a shareable format.
+
 ## Tests and simulation evidence
 
 The hardware-independent test suite exercises simulated GPIO/PWM motor decisions, camera discovery, scout command proxy behavior, firmware settings, and installer invariants.
@@ -678,6 +815,8 @@ Then browse to `http://127.0.0.1:8080`. On a non-Pi machine, GPIO behavior is si
 
 ## Documentation
 
+- [Exact recreation guide](#recreate-this-exact-prototype) — parts, board profiles, build order, and pass conditions.
+- [Common errors and troubleshooting](#common-errors-and-troubleshooting) — observed failures, decision tree, and evidence to capture.
 - [Setup guide](docs/SETUP.md) — end-to-end Pi, network, firmware, and first-drive procedure.
 - [Tomorrow field checklist](docs/TOMORROW_CHECKLIST.md) — physical validation and the servo/gimbal data required for the next development step.
 - [Field information checklist](docs/FIELD_INFORMATION_CHECKLIST.md) — exact photos, serial logs, network evidence, and hardware data needed for the next integration step.
@@ -688,6 +827,47 @@ Then browse to `http://127.0.0.1:8080`. On a non-Pi machine, GPIO behavior is si
 - [Simulation results](docs/SIMULATION_RESULTS.md) — commands run, passed tests, and test limitations.
 - [Changes from original](docs/CHANGES_FROM_ORIGINAL.md) — what came from the integration base and what changed.
 - [Installer guide](installer/README.md) and [server guide](robot_server/README.md) — package-specific operation details.
+
+## Future research and expansion
+
+This prototype is a local, human-operated reconnaissance platform. Future work
+should preserve the existing safety rule: a failed optional feature must never
+remove manual stop/control capability. The roadmap below is intentionally broad
+so it can guide both software and hardware research.
+
+```mermaid
+flowchart LR
+    Now["Today\nlocal teleoperation\nvideo + watchdogs"] --> Assist["Next\nassistive perception\nmapping + alerts"]
+    Assist --> Team["Then\ncoordinated multi-robot\ncoverage + relay"]
+    Team --> Autonomy["Research frontier\nconstrained autonomy\nwith human approval"]
+    Autonomy --> Trust["Continuous work\nsafety, privacy, trust\nand field evidence"]
+```
+
+| Research direction | Possible features | Evidence needed before use around people or property |
+| --- | --- | --- |
+| Mapping and navigation | Visual-inertial odometry, wheel-encoder fusion, 2D/3D maps, SLAM, obstacle detection, return-to-home, geofenced routes. | Repeatable indoor/outdoor route tests, collision/fail-safe tests, and a manual override that wins immediately. |
+| Multi-robot coordination | Shared map, automatic camera handoff, coverage planner, relay nodes, fleet health dashboard, task assignment, formation/escort behavior. | Network-loss simulations, identity-conflict tests, bandwidth budgets, and an independent stop path for every robot. |
+| Perception and AI | Better low-light cameras, thermal/depth sensing, audio event detection, on-device object alerts, smoke/hazard cues, scene summaries, uncertainty display. | Diverse, labeled evaluation data; lighting/occlusion tests; false-positive/false-negative reporting; no unvalidated identity claims. |
+| Human-centered operation | Accessibility controls, haptic feedback, voice commands with confirmation, multi-operator roles, incident timeline export, simpler emergency UI. | Usability tests with novice operators, accessible-design review, and measured time-to-stop/time-to-understand results. |
+| Communications | Mesh or redundant radio links, UWB ranging, LTE/5G backhaul where authorized, adaptive bitrate video, store-and-forward logs, long-range relay scouts. | Range, interference, congestion, handoff, and recovery testing without weakening the local emergency-stop behavior. |
+| Mobility and manipulation | Active suspension, tracked modules, self-righting, docking/charging, payload bay, sample collection arm, deployable lights, environmental sealing. | Mechanical stress, battery, thermal, ingress, and pinch/crush-hazard validation before field use. |
+| Reliability and power | Battery telemetry, brownout detection, redundant compute/storage, health self-tests, predictive maintenance, safe shutdown, charging dock. | Fault-injection tests for low voltage, unplugged cameras, failed sensors, storage exhaustion, and interrupted updates. |
+| Privacy and security | Per-robot credentials, authenticated control, encrypted local traffic, audit logs, camera-retention controls, physical pairing, role-based access. | Threat modeling and recovery procedures that do not lock out the operator during an emergency. |
+| Digital twins and education | Physics simulation, mission replay, classroom calibration labs, synthetic camera data, automated regression scenarios, web-based training. | Correlation of simulation output with measured hardware behavior before using simulation to make safety decisions. |
+| Sociotechnical research | Study whether transparent controls, visible stop states, and human approval reduce automation anxiety for operators and bystanders. | Consent-aware user studies, clear research questions, and reported limitations rather than assuming public acceptance. |
+
+### High-value next experiments
+
+1. Measure command latency, packet loss, and video latency at three distances
+   with one stream versus two streams.
+2. Run a controlled one-hour endurance test that logs Pi CPU temperature,
+   voltage, ECHO reconnects, and camera restarts.
+3. Compare manual teleoperation against an assistive mapping/alert mode while
+   keeping a human in control.
+4. Build a fault-injection checklist: power-cycle one camera, disconnect Wi-Fi,
+   exhaust storage, and confirm the core stop/control paths remain usable.
+5. Publish repeatable results, test conditions, and failures alongside every
+   proposed new capability.
 
 ## Safety checklist
 
