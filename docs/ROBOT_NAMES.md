@@ -2,9 +2,11 @@
 
 Use these names consistently throughout the project documentation and UI:
 
-- **3T Sahor** — the large Raspberry Pi 4 mecanum-drive robot / control hub.
-- **LARP A** and **LARP B** — the two small Zippy/ECHO differential-drive robots.
+- **3TSAHUR** — **Terrain Tandem Transport Semi-Autonomous Hub Unit for Reconnaissance**. The large Raspberry Pi 4 mecanum-drive robot and control hub.
+- **LARP A** and **LARP B** — **Lightweight Autonomous Reconnaissance Platform**. The two small Zippy/ECHO differential-drive robots.
 
-`Zippy` and `ECHO` describe the underlying small-robot platform/controller hardware; the robots themselves are named **LARPs** in this project.
+Zippy and ECHO describe the underlying small-robot hardware platform/controller. The project name for each small robot is LARP.
 
-When describing the fleet collectively: **3T Sahor + LARPs**.
+When describing the fleet collectively, use **3TSAHUR + LARPs**.
+
+Naming rule: spell the large robot exactly **3TSAHUR** (`3` + `TSAHUR`).
