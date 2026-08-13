@@ -22,11 +22,14 @@ Relevant upstream documentation:
 - At least 3 GB of free storage and a stable Pi power supply. ML packages and model conversion use more space and CPU than the base dashboard.
 - The C270 connected and visible as `/dev/video0` (or the configured camera device). Use `v4l2-ctl --list-devices` to check.
 
-Do not run model installation as `root`, and do not install the ML packages into `/usr/lib/python3`. The separate environment below keeps the established dashboard dependencies unchanged.
+Do not run model installation as `root`, and do not install the ML packages into `/usr/lib/python3`. The separate environment below keeps the established dashboard dependencies unchanged. The project installer records this environment for the dashboard automatically; the dashboard loads it only when an operator enables Vision.
 
 ## Install YOLO11 Nano and NCNN
 
-Run these commands as the Pi's normal user after the base project is installed:
+The recommended path is the one-command installer from the root README. It
+installs the model, verifies the dashboard can import it, updates the protected
+vision setting, and restarts the dashboard. If you instead install manually,
+run these commands as the Pi's normal user after the base project is installed:
 
 ```bash
 cd ~/STEMResearchAcademy
@@ -57,7 +60,23 @@ PY
 
 Keep the resulting `yolo11n_ncnn_model/` directory with the application. If the Pi must be offline later, create the export once on a connected Pi and retain that directory; neither weights nor a dataset need to be downloaded again for inference.
 
+For a manual installation, make the separate vision environment visible to the
+dashboard once, then restart the service:
+
+```bash
+VISION_SITE_PACKAGES="$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
+sudo sed -i -E '/^VISION_SITE_PACKAGES=/d' /etc/stem-research-academy/config.env
+printf 'VISION_SITE_PACKAGES=%s\n' "$VISION_SITE_PACKAGES" | sudo tee -a /etc/stem-research-academy/config.env
+sudo systemctl restart stem-robot-dashboard
+```
+
 ## Enable or disable vision in the dashboard
+
+After the installer reports that its dashboard import/model check passed,
+reload the dashboard. Select one robot tab and use its Vision button or press
+`C` to toggle that camera's inference on and off. No further code changes are
+required after the successful installer run. Vision is per camera and pauses
+while a Pi or LARP drive command is active; it resumes after the robot stops.
 
 Open a robot tab and press `C`, or select its **Vision off · C** button. The control is per camera: 3TSahur's C270, LARP Scout A, and LARP Scout B each keep their own state. When enabled, the dashboard overlays current `person` boxes and confidence scores; press `C` again to immediately stop future inference for that selected feed.
 

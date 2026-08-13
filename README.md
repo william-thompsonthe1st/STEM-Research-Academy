@@ -331,9 +331,24 @@ exports the 320px NCNN model used by the dashboard.
 curl -fsSL https://raw.githubusercontent.com/william-thompsonthe1st/STEM-Research-Academy/agent/integrate-3tsahur-larp/installer/install-vision.sh | bash
 ```
 
+> **What happens next:** the installer verifies that the dashboard can load
+> the new vision environment, records that path in the Pi configuration, and
+> restarts the dashboard. Reload the dashboard, select exactly one robot tab,
+> and press its **Vision off · C** button (or press `C`) to turn YOLO on. Press
+> it again to turn YOLO off. No further code change, package command, or model
+> setting is needed after a successful install.
+
+> **Important:** installation happens in the Pi terminal, not through the
+> dashboard UI. The UI button only enables or disables inference after the
+> installer has completed successfully. Vision starts off after each dashboard
+> restart, is per camera tab, and deliberately pauses while a robot is moving
+> so core control traffic remains available. A missing model, package, or
+> camera feed displays **Vision unavailable** without affecting drive, stop,
+> watchdog, hotspot, or video-stream operation.
+
 YOLO remains optional: do not install it until the base dashboard, cameras,
-and controls have passed their physical checks. It is never required for motor
-control or LARP operation.
+and controls are working. It is never required for motor control or LARP
+operation.
 
 ### Manual vision install
 

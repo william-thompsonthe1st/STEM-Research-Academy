@@ -385,6 +385,7 @@ ensure_config_key VISION_MODEL "yolo11n_ncnn_model"
 ensure_config_key VISION_IMAGE_SIZE "320"
 ensure_config_key VISION_CONFIDENCE "0.45"
 ensure_config_key VISION_INTERVAL_SECONDS "0.5"
+ensure_config_key VISION_SITE_PACKAGES ""
 
 # Preserve configured hotspot credentials. Updating either one requires
 # reflashing every LARP controller and ESP32-CAM with the same credentials.

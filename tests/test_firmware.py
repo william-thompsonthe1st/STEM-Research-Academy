@@ -157,6 +157,9 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn(".vision-venv", vision_installer)
         self.assertIn('"ultralytics>=8.3,<9" ncnn', vision_installer)
         self.assertIn('model.export(format="ncnn"', vision_installer)
+        self.assertIn("VISION_SITE_PACKAGES", vision_installer)
+        self.assertIn("Dashboard vision import and model load passed.", vision_installer)
+        self.assertIn("systemctl restart stem-robot-dashboard.service", vision_installer)
 
 
 if __name__ == "__main__":

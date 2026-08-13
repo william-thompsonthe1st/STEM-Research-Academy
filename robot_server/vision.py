@@ -8,8 +8,10 @@ Flask route or a motor-control path.
 from __future__ import annotations
 
 import os
+import site
 import threading
 import time
+from pathlib import Path
 from typing import Callable
 
 
@@ -38,6 +40,8 @@ class VisionManager:
         self.confidence = float(os.environ.get("VISION_CONFIDENCE", "0.45"))
         self.image_size = int(os.environ.get("VISION_IMAGE_SIZE", "320"))
         self.model_path = os.environ.get("VISION_MODEL", "yolo11n_ncnn_model")
+        self.site_packages_path = os.environ.get("VISION_SITE_PACKAGES", "").strip()
+        self._site_packages_added = False
 
     @staticmethod
     def _new_state() -> dict:
@@ -70,12 +74,25 @@ class VisionManager:
         if self._model_error:
             raise RuntimeError(self._model_error)
         try:
+            self._add_optional_site_packages()
             from ultralytics import YOLO  # type: ignore
             self._model = YOLO(self.model_path)
             return self._model
         except Exception as error:
             self._model_error = f"YOLO unavailable: {error}"
             raise RuntimeError(self._model_error) from error
+
+    def _add_optional_site_packages(self) -> None:
+        """Expose the verified optional vision venv to the dashboard process."""
+        if self._site_packages_added or not self.site_packages_path:
+            return
+        package_dir = Path(self.site_packages_path)
+        if not package_dir.is_dir():
+            raise RuntimeError(
+                "Configured YOLO environment is missing. Run installer/install-vision.sh again."
+            )
+        site.addsitedir(str(package_dir))
+        self._site_packages_added = True
 
     def _run_one(self, source: str) -> None:
         try:
