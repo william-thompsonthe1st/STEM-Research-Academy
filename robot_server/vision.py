@@ -1,9 +1,4 @@
-"""Optional, failure-isolated YOLO inference for the dashboard.
-
-This module deliberately imports neither OpenCV nor Ultralytics until a user
-enables vision. All inference happens on one daemon thread and never in a
-Flask route or a motor-control path.
-"""
+"""Optional, failure-isolated YOLO11n person detection for the dashboard."""
 
 from __future__ import annotations
 
@@ -19,7 +14,7 @@ DEFAULT_MODEL_PATH = PROJECT_ROOT / "yolo11n_ncnn_model"
 
 
 class VisionManager:
-    """Run pretrained person detection without making control depend on it."""
+    """Run optional person detection without making control depend on it."""
 
     def __init__(self, sources: dict[str, Callable[[], object | None]], should_pause: Callable[[], bool] | None = None) -> None:
         self._sources = sources
@@ -32,8 +27,8 @@ class VisionManager:
         self._thread: threading.Thread | None = None
         self._model = None
         self._model_error: str | None = None
-        self.interval = max(0.2, float(os.environ.get("VISION_INTERVAL_SECONDS", "0.5")))
-        self.confidence = float(os.environ.get("VISION_CONFIDENCE", "0.45"))
+        self.interval = max(0.2, float(os.environ.get("VISION_PERSON_INTERVAL_SECONDS", os.environ.get("VISION_INTERVAL_SECONDS", "0.35"))))
+        self.confidence = float(os.environ.get("VISION_PERSON_CONFIDENCE", os.environ.get("VISION_CONFIDENCE", "0.20")))
         self.image_size = int(os.environ.get("VISION_IMAGE_SIZE", "320"))
         configured_model = os.environ.get("VISION_MODEL", "").strip()
         self.model_path = str(Path(configured_model).expanduser().resolve()) if configured_model else str(DEFAULT_MODEL_PATH)
@@ -54,12 +49,20 @@ class VisionManager:
         with self._lock:
             if source not in self._states:
                 raise KeyError(source)
+            if enabled:
+                # Match the partner baseline: only one YOLO camera at a time on Pi 4.
+                for other in self._sources:
+                    if other == source:
+                        continue
+                    self._enabled[other] = False
+                    self._states[other].update(enabled=False, available=None, error=None, detections=[])
             self._enabled[source] = enabled
             state = self._states[source]
             state["enabled"] = enabled
             if not enabled:
                 state.update(available=None, error=None, detections=[])
             else:
+                # A prior failed load must not poison every future C-toggle attempt.
                 if self._model is None:
                     self._model_error = None
                 state.update(available=None, error=None)
@@ -87,10 +90,9 @@ class VisionManager:
             raise RuntimeError(self._model_error) from error
 
     def _add_optional_site_packages(self) -> None:
-        if self._site_packages_added:
+        """Support older installs while preferring the dedicated vision interpreter."""
+        if self._site_packages_added or not self.site_packages_path:
             return
-        if not self.site_packages_path:
-            raise RuntimeError("VISION_SITE_PACKAGES is not configured. Run installer/install-vision.sh.")
         package_dir = Path(self.site_packages_path)
         if not package_dir.is_dir():
             raise RuntimeError("Configured YOLO environment is missing. Run installer/install-vision.sh again.")
@@ -109,7 +111,7 @@ class VisionManager:
             if frame is None:
                 raise RuntimeError("Camera frame could not be decoded")
             model = self._load_model()
-            result = model(frame, classes=[0], conf=self.confidence, imgsz=self.image_size, verbose=False)[0]
+            result = model(frame, classes=[0], conf=self.confidence, imgsz=self.image_size, max_det=10, verbose=False)[0]
             height, width = frame.shape[:2]
             detections = []
             boxes = getattr(result, "boxes", None)
