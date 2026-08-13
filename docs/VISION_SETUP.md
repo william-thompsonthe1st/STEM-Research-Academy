@@ -97,11 +97,15 @@ Open `/tmp/3tsahur-yolo-preview.jpg` on the Pi display. A person in view should 
 Before using a LARP feed for vision:
 
 1. Complete [ESP32_CAM_SETUP.md](ESP32_CAM_SETUP.md) for the appropriate camera.
-2. Confirm the selected LARP tab plays `http://larp-a-cam.local/stream` or `http://larp-b-cam.local/stream` (or its configured static-IP fallback).
+2. Confirm the selected LARP tab plays the Pi-relayed camera feed after the
+   ESP32-CAM log prints `Camera registered with Pi dashboard.` The direct
+   `http://larp-a-cam.local/stream` or `http://larp-b-cam.local/stream` address
+   (or a configured static-IP fallback) is only a diagnostic fallback.
 3. Keep only the selected dashboard stream open. The existing dashboard does this automatically to preserve Wi-Fi capacity for robot control.
 4. Start with **one** vision source at a time. Do not run inference on both ESP32-CAM streams and the C270 simultaneously on a Pi 4.
 
-The ESP32-CAM stream itself does not need new firmware for this model. It must simply be reachable by the Pi and produce a valid MJPEG stream.
+The ESP32-CAM must run the current firmware so it can register its changing
+DHCP address with the Pi and produce a valid MJPEG stream.
 
 ## Performance and safe operating settings
 

@@ -17,12 +17,12 @@ from collections import deque
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Flask, Response, jsonify, render_template, request, send_from_directory
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory, url_for
 
 from .actuators import ActuatorController
 from .camera import CameraStream
 from .motor import MecanumDrive
-from .scouts import ScoutRegistry
+from .scouts import CameraRegistry, ScoutRegistry
 from .vision import VisionManager
 
 
@@ -48,29 +48,71 @@ drive_sequences: dict[str, int] = {}
 scout_sequences: dict[tuple[str, str], int] = {}
 scout_command_locks = {"a": threading.Lock(), "b": threading.Lock()}
 scout_registry = ScoutRegistry()
+camera_registry = CameraRegistry()
+
+
+def _env_first(*names: str, default: str = "") -> str:
+    """Accept current settings and the aliases used in the partner project."""
+    return next((value for name in names if (value := os.environ.get(name))), default)
+
+
 SCOUTS = {
     "a": {
         "name": "LARP Scout A",
-        "host": os.environ.get("LARP_A_HOST", "larp-a.local"),
-        "camera": os.environ.get("LARP_A_CAMERA_URL") or "http://larp-a-cam.local/stream",
+        "host": _env_first("LARP_A_HOST", "SCOUT_A_HOST", default="larp-a.local"),
+        "camera": _env_first("LARP_A_CAMERA_URL", "ESP32_ONE_STREAM_URL", default="http://larp-a-cam.local/stream"),
     },
     "b": {
         "name": "LARP Scout B",
-        "host": os.environ.get("LARP_B_HOST", "larp-b.local"),
-        "camera": os.environ.get("LARP_B_CAMERA_URL") or "http://larp-b-cam.local/stream",
+        "host": _env_first("LARP_B_HOST", "SCOUT_B_HOST", default="larp-b.local"),
+        "camera": _env_first("LARP_B_CAMERA_URL", "ESP32_TWO_STREAM_URL", default="http://larp-b-cam.local/stream"),
     },
 }
 
 
+CAMERA_URL_SETTINGS = {
+    "a": ("LARP_A_CAMERA_URL", "ESP32_ONE_STREAM_URL"),
+    "b": ("LARP_B_CAMERA_URL", "ESP32_TWO_STREAM_URL"),
+}
+
+
+def _scout_camera_url(scout_id: str) -> str:
+    configured_url = _env_first(*CAMERA_URL_SETTINGS[scout_id])
+    if configured_url:
+        return configured_url
+    return camera_registry.stream_url(scout_id, SCOUTS[scout_id]["camera"])
+
+
+def _fetch_scout_jpeg(scout_id: str, timeout: float) -> bytes | None:
+    """Read one complete JPEG from the ESP32-CAM's MJPEG response."""
+    raw = bytearray()
+    with urllib.request.urlopen(_scout_camera_url(scout_id), timeout=timeout) as response:
+        while len(raw) < 128_000:
+            chunk = response.read(min(4096, 128_000 - len(raw)))
+            if not chunk:
+                break
+            raw.extend(chunk)
+            start = raw.find(b"\xff\xd8")
+            end = raw.find(b"\xff\xd9", max(0, start + 2))
+            if start >= 0 and end > start:
+                return bytes(raw[start:end + 2])
+    return None
+
+
+def _relay_scout_camera(scout_id: str):
+    """Keep a browser stream open while an ESP32-CAM reconnects or gets DHCP."""
+    while True:
+        try:
+            with urllib.request.urlopen(_scout_camera_url(scout_id), timeout=1.5) as response:
+                while chunk := response.read(4096):
+                    yield chunk
+        except (OSError, ValueError, urllib.error.URLError):
+            time.sleep(0.5)
+
+
 def _scout_frame(scout_id: str):
-    """Read one scout frame in the optional worker, never in a request route."""
-    import cv2  # type: ignore
-    stream = cv2.VideoCapture(SCOUTS[scout_id]["camera"])
-    try:
-        ok, frame = stream.read()
-        return frame if ok else None
-    finally:
-        stream.release()
+    """Read one bounded scout frame in the optional worker."""
+    return _fetch_scout_jpeg(scout_id, timeout=0.4)
 
 
 vision = VisionManager({
@@ -99,10 +141,7 @@ def _snapshot_bytes(source: str) -> bytes | None:
     scout_id = {"larp-a": "a", "larp-b": "b"}.get(source)
     if not scout_id:
         return None
-    with urllib.request.urlopen(SCOUTS[scout_id]["camera"], timeout=0.75) as response:
-        raw = response.read(128_000)
-    start, end = raw.find(b"\xff\xd8"), raw.find(b"\xff\xd9")
-    return raw[start:end + 2] if start >= 0 and end > start else None
+    return _fetch_scout_jpeg(scout_id, timeout=0.75)
 
 
 def _scout_request(scout_id: str, path: str, query: dict | None = None) -> dict:
@@ -123,7 +162,7 @@ def create_app() -> Flask:
 
     @app.after_request
     def prevent_stale_dashboard(response):
-        if request.endpoint != "camera_feed":
+        if request.endpoint not in {"camera_feed", "scout_camera_feed"}:
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
         return response
@@ -132,14 +171,23 @@ def create_app() -> Flask:
     def index():
         return render_template(
             "index.html",
-            larp_a_stream=SCOUTS["a"]["camera"],
-            larp_b_stream=SCOUTS["b"]["camera"],
+            larp_a_stream=url_for("scout_camera_feed", scout_id="a"),
+            larp_b_stream=url_for("scout_camera_feed", scout_id="b"),
             server_time_ms=round(time.time() * 1000),
         )
 
     @app.get("/camera.mjpg")
     def camera_feed():
         return Response(camera.frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+    @app.get("/api/scouts/<scout_id>/camera.mjpg")
+    def scout_camera_feed(scout_id: str):
+        if scout_id not in SCOUTS:
+            return jsonify(error="Unknown scout"), 404
+        return Response(
+            _relay_scout_camera(scout_id),
+            mimetype="multipart/x-mixed-replace; boundary=frame",
+        )
 
     @app.get("/api/status")
     def status():
@@ -158,6 +206,7 @@ def create_app() -> Flask:
             uptime_seconds=round(time.monotonic(), 1),
             command=drive.last_command,
             actuators=actuators.snapshot(),
+            camera_heartbeats={camera_id: camera_registry.snapshot(camera_id) for camera_id in ("a", "b")},
             vision={source: vision.snapshot(source) for source in ("3tsahur", "larp-a", "larp-b")},
             server_time_ms=round(time.time() * 1000),
         )
@@ -284,6 +333,7 @@ def create_app() -> Flask:
         if scout_id not in SCOUTS:
             return jsonify(error="Unknown scout"), 404
         heartbeat = scout_registry.snapshot(scout_id)
+        camera_heartbeat = camera_registry.snapshot(scout_id)
         if heartbeat is None:
             return jsonify(
                 online=False,
@@ -291,6 +341,7 @@ def create_app() -> Flask:
                 name=SCOUTS[scout_id]["name"],
                 host=SCOUTS[scout_id]["host"],
                 heartbeat=None,
+                camera=camera_heartbeat,
             )
         try:
             status_data = _scout_request(scout_id, "/status")
@@ -298,6 +349,7 @@ def create_app() -> Flask:
             status_data["connected"] = True
             status_data["host"] = scout_registry.host_for(scout_id, SCOUTS[scout_id]["host"])
             status_data["heartbeat"] = heartbeat
+            status_data["camera"] = camera_heartbeat
             return jsonify(status_data)
         except (OSError, ValueError, json.JSONDecodeError, urllib.error.URLError) as error:
             return jsonify(
@@ -306,6 +358,7 @@ def create_app() -> Flask:
                 name=SCOUTS[scout_id]["name"],
                 host=heartbeat["ip"] if heartbeat else SCOUTS[scout_id]["host"],
                 heartbeat=heartbeat,
+                camera=camera_heartbeat,
                 error=str(error),
             )
 
@@ -328,6 +381,30 @@ def create_app() -> Flask:
             registered=True,
             id=scout_id.upper(),
             dashboard="http://10.42.0.1",
+            heartbeat=heartbeat,
+        )
+
+    @app.route("/api/cameras/register", methods=["GET", "POST"])
+    def register_camera():
+        """Record an ESP32-CAM by the DHCP address that actually reached the Pi."""
+        payload = request.get_json(silent=True) or request.args
+        camera_id = str(payload.get("id", "")).lower()
+        if camera_id not in SCOUTS:
+            return jsonify(error="Camera id must be A or B"), 400
+        try:
+            rssi = int(payload["rssi"]) if payload.get("rssi") not in (None, "") else None
+            uptime_ms = int(payload["uptime_ms"]) if payload.get("uptime_ms") not in (None, "") else None
+        except (TypeError, ValueError):
+            return jsonify(error="Invalid camera telemetry"), 400
+        remote_ip = request.remote_addr or ""
+        heartbeat = camera_registry.record(camera_id, remote_ip, rssi, uptime_ms)
+        heartbeat.pop("last_seen", None)
+        return jsonify(
+            ok=True,
+            registered=True,
+            id=camera_id.upper(),
+            dashboard="http://10.42.0.1",
+            stream=url_for("scout_camera_feed", scout_id=camera_id),
             heartbeat=heartbeat,
         )
 

@@ -534,6 +534,8 @@ terminal.
 | ECHO and camera Wi-Fi sleep disabled | Favors control/stream response over battery life while each board is powered. |
 | Camera retry timing differs (`2.0 s` for A, `2.4 s` for B) | Prevents both cameras from repeatedly reconnecting at the exact same moment after a hotspot restart. |
 | Camera HTTP server is reused after Wi-Fi reconnect | A temporary hotspot outage cannot create a second competing camera server. |
+| ESP32-CAM registers its current DHCP address with the Pi every four seconds | The dashboard no longer depends on a browser resolving the camera's `.local` name. |
+| Pi relays the registered camera feed on the local dashboard URL | A camera that reconnects with a different DHCP address resumes on the selected LARP tab. |
 | MJPEG capture uses the latest frame and is capped at 10 FPS | Avoids a growing camera backlog and leaves airtime for drive commands. |
 | Dashboard keeps only the selected LARP stream open | Do not open both camera streams manually while driving; one active stream is the control-priority operating mode. |
 | Pi USB-camera capture supervises disconnects and stale frames | A dashboard USB camera retries after a disconnect, and a stopped feed is reported unavailable instead of being treated as live. |
@@ -542,6 +544,21 @@ For the first test, keep the robot close to the Pi, motors disabled, and only
 one camera powered. Add the second camera only after the first ECHO and camera
 remain connected for ten minutes. This separates Wi-Fi issues from motor noise,
 power drops, and radio congestion.
+
+#### Camera connection behavior: flash this version on both ESP32-CAMs
+
+The ESP32-CAM firmware in this project now calls the Pi directly at
+`10.42.0.1:8080` after joining Wi-Fi. It registers its actual DHCP address as
+Camera A or B, and the dashboard relays the matching feed at
+`/api/scouts/a/camera.mjpg` or `/api/scouts/b/camera.mjpg`. This removes the
+previous requirement for the browser or Pi to resolve `larp-a-cam.local` and
+`larp-b-cam.local` before a camera feed can appear.
+
+After flashing, the serial monitor should print both a camera stream address
+and `Camera registered with Pi dashboard.` Existing camera firmware that is not
+reflashed still has the legacy `.local`/`LARP_*_CAMERA_URL` fallback only. Do
+not set a static camera IP unless you deliberately need to override the normal
+automatic registration.
 
 #### Step 5: separate an upload error from a Wi-Fi error
 
@@ -571,9 +588,12 @@ Vendor and protocol references: [ECHO basic setup](https://3dbuffalo.gitbook.io/
 ### ESP32-CAM quick start
 
 The Inland ESP32-CAM is a separate Wi-Fi video node, not a motor-controller
-accessory. Flash it as `A` or `B`, connect it to stable 5 V power, and use the
-matching `larp-a-cam.local/stream` or `larp-b-cam.local/stream` address. The
-dashboard opens only the selected LARP feed to protect control responsiveness.
+accessory. Flash it as `A` or `B`, connect it to stable 5 V power, and confirm
+its serial log says `Camera registered with Pi dashboard.` The dashboard then
+uses the Pi's registered-feed proxy automatically; the matching
+`larp-a-cam.local/stream` or `larp-b-cam.local/stream` address remains useful
+only as a direct diagnostic. The dashboard opens only the selected LARP feed to
+protect control responsiveness.
 See the complete [Inland ESP32-CAM setup guide](docs/ESP32_CAM_SETUP.md) for
 the flash wiring, pin map, network fallback, and troubleshooting steps.
 For the complete LARP-level procedure—including power separation, when an

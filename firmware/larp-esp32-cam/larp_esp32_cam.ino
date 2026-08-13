@@ -17,6 +17,10 @@ constexpr char WIFI_PASSWORD[] = "REPLACE_WITH_PI_PASSWORD";
 constexpr unsigned long WIFI_RETRY_A_MS = 2000;
 constexpr unsigned long WIFI_RETRY_B_MS = 2400;
 constexpr unsigned long STREAM_FRAME_INTERVAL_MS = 100;  // 10 FPS maximum.
+constexpr unsigned long CAMERA_SERVER_RETRY_MS = 2000;
+constexpr unsigned long PI_REGISTRATION_INTERVAL_MS = 4000;
+constexpr uint16_t PI_DASHBOARD_PORT = 8080;
+const IPAddress PI_ADDRESS(10, 42, 0, 1);
 static_assert(CAMERA_ID == 'A' || CAMERA_ID == 'B', "CAMERA_ID must be A or B");
 
 const char *cameraHost() { return CAMERA_ID == 'A' ? "larp-a-cam" : "larp-b-cam"; }
@@ -32,10 +36,15 @@ bool mdnsStarted = false;
 bool wifiWasConnected = false;
 bool serverStarted = false;
 unsigned long lastWiFiAttemptAt = 0;
+unsigned long lastServerAttemptAt = 0;
+unsigned long lastPiRegistrationAt = 0;
+bool piRegistered = false;
 
 esp_err_t statusHandler(httpd_req_t *request) {
   const String body = String("{\"ok\":true,\"id\":\"") + CAMERA_ID +
-      "\",\"name\":\"" + cameraName() + "\",\"ip\":\"" + WiFi.localIP().toString() + "\"}";
+      "\",\"name\":\"" + cameraName() + "\",\"ip\":\"" + WiFi.localIP().toString() +
+      "\",\"rssi\":" + String(WiFi.RSSI()) + ",\"pi_registered\":" +
+      String(piRegistered ? "true" : "false") + "}";
   httpd_resp_set_type(request, "application/json");
   return httpd_resp_send(request, body.c_str(), body.length());
 }
@@ -95,6 +104,35 @@ bool startServer() {
   return true;
 }
 
+bool registerWithPi() {
+  WiFiClient client;
+  client.setTimeout(300);
+  if (!client.connect(PI_ADDRESS, PI_DASHBOARD_PORT)) return false;
+
+  String path = "/api/cameras/register?id=";
+  path += CAMERA_ID == 'A' ? "a" : "b";
+  path += "&rssi=" + String(WiFi.RSSI()) + "&uptime_ms=" + String(millis());
+  client.print("GET ");
+  client.print(path);
+  client.print(" HTTP/1.1\r\nHost: 10.42.0.1:8080\r\nConnection: close\r\n\r\n");
+
+  const unsigned long deadline = millis() + 750;
+  while (!client.available() && millis() < deadline) delay(1);
+  const String statusLine = client.available() ? client.readStringUntil('\n') : "";
+  client.stop();
+  return statusLine.indexOf(" 200 ") >= 0;
+}
+
+void maintainPiRegistration() {
+  if (!serverStarted || WiFi.status() != WL_CONNECTED) return;
+  if (piRegistered && millis() - lastPiRegistrationAt < PI_REGISTRATION_INTERVAL_MS) return;
+  lastPiRegistrationAt = millis();
+  const bool wasRegistered = piRegistered;
+  piRegistered = registerWithPi();
+  if (piRegistered && !wasRegistered) Serial.println("Camera registered with Pi dashboard.");
+  if (!piRegistered && wasRegistered) Serial.println("Camera registration lost; retrying Pi dashboard.");
+}
+
 void beginWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
@@ -113,15 +151,20 @@ void maintainWiFi() {
       wifiWasConnected = true;
       mdnsStarted = MDNS.begin(cameraHost());
       if (mdnsStarted) MDNS.addService("http", "tcp", 80);
-      serverStarted = startServer();
-      if (!serverStarted) Serial.println("Camera HTTP server failed to start; reconnect Wi-Fi to retry.");
-      Serial.printf("%s ready: http://%s.local/stream\n", cameraName(), cameraHost());
     }
+    if (!serverStarted && (lastServerAttemptAt == 0 || millis() - lastServerAttemptAt >= CAMERA_SERVER_RETRY_MS)) {
+      lastServerAttemptAt = millis();
+      serverStarted = startServer();
+      if (serverStarted) Serial.printf("%s ready: http://%s.local/stream\n", cameraName(), cameraHost());
+      else Serial.println("Camera HTTP server failed to start; retrying while Wi-Fi stays connected.");
+    }
+    maintainPiRegistration();
     return;
   }
 
   if (wifiWasConnected) {
     wifiWasConnected = false;
+    piRegistered = false;
     if (mdnsStarted) MDNS.end();
     mdnsStarted = false;
     Serial.println("Camera Wi-Fi disconnected; retrying the Pi hotspot.");

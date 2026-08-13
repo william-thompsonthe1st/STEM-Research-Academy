@@ -85,3 +85,51 @@ class ScoutRegistry:
     def close(self) -> None:
         self._stop.set()
         self._thread.join(timeout=1)
+
+
+class CameraRegistry:
+    """Recent HTTP registrations from the independently-addressed ESP32-CAMs."""
+
+    def __init__(self, max_age: float = 15.0) -> None:
+        self.max_age = max_age
+        self._records: dict[str, dict] = {}
+        self._lock = threading.Lock()
+
+    def record(
+        self,
+        camera_id: str,
+        ip: str,
+        rssi: int | None = None,
+        uptime_ms: int | None = None,
+    ) -> dict:
+        normalized_id = str(camera_id).lower()
+        if normalized_id not in ("a", "b"):
+            raise ValueError("Camera id must be A or B")
+        record = {
+            "id": normalized_id,
+            "ip": ip,
+            "last_seen": time.monotonic(),
+            "rssi": rssi,
+            "uptime_ms": uptime_ms,
+            "transport": "http",
+        }
+        with self._lock:
+            self._records[normalized_id] = record
+        return dict(record)
+
+    def snapshot(self, camera_id: str) -> dict | None:
+        with self._lock:
+            record = self._records.get(camera_id)
+            if not record:
+                return None
+            result = dict(record)
+        age = time.monotonic() - result["last_seen"]
+        if age > self.max_age:
+            return None
+        result["age_ms"] = round(age * 1000)
+        return result
+
+    def stream_url(self, camera_id: str, fallback: str) -> str:
+        """Prefer a camera's current DHCP address over mDNS or a static override."""
+        record = self.snapshot(camera_id)
+        return f"http://{record['ip']}/stream" if record else fallback

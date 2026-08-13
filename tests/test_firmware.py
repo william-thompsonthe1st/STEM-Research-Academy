@@ -82,6 +82,14 @@ class LarpFirmwareTests(unittest.TestCase):
         self.assertIn("STREAM_FRAME_INTERVAL_MS = 100", self.camera_source)
         self.assertIn("vTaskDelay(pdMS_TO_TICKS", self.camera_source)
 
+    def test_larp_camera_registers_its_current_dhcp_address_with_the_pi(self):
+        self.assertIn("PI_DASHBOARD_PORT = 8080", self.camera_source)
+        self.assertIn("const IPAddress PI_ADDRESS(10, 42, 0, 1)", self.camera_source)
+        self.assertIn("bool registerWithPi()", self.camera_source)
+        self.assertIn('"/api/cameras/register?id="', self.camera_source)
+        self.assertIn("void maintainPiRegistration()", self.camera_source)
+        self.assertIn("Camera registered with Pi dashboard.", self.camera_source)
+
     def test_installer_schedules_reboot_outside_pipe_process(self):
         self.assertIn("systemd-run", self.installer)
         self.assertIn("--on-active=10s", self.installer)

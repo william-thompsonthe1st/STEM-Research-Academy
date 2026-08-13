@@ -61,16 +61,18 @@ the resulting MJPEG stream over Wi-Fi.
 
 The firmware waits for Wi-Fi without blocking and retries every 2.0 seconds on
 Camera A or 2.4 seconds on Camera B. The different retry intervals prevent the
-two cameras from retrying in lockstep after the Pi hotspot restarts. It starts
-its HTTP stream after it joins the hotspot and reuses that server after a
-temporary Wi-Fi drop. It serves at most 10 frames per second so drive commands
-keep priority on the shared network.
+two cameras from retrying in lockstep after the Pi hotspot restarts. It retries
+its HTTP server while Wi-Fi remains connected, reuses that server after a
+temporary Wi-Fi drop, and registers its current DHCP address directly with the
+Pi dashboard every four seconds. It serves at most 10 frames per second so
+drive commands keep priority on the shared network.
 
 ## Verify the feed
 
 1. Power 3TSahur and wait for the `3TSahur-Swarm` hotspot.
 2. Power the matching camera and open its serial monitor at 115200 baud. A
-   successful connection prints the camera hostname and stream address.
+   successful connection prints the camera hostname and stream address, then
+   `Camera registered with Pi dashboard.`
 3. From a device on the hotspot, open:
 
    ```text
@@ -80,11 +82,13 @@ keep priority on the shared network.
 
    Replace `a` with `b` for Scout B.
 4. Open the matching LARP tab in the 3TSahur dashboard. The selected tab opens
-   that feed automatically; inactive tabs intentionally close their streams to
-   preserve Wi-Fi bandwidth for robot controls.
+   the Pi-relayed feed automatically; it does not depend on `.local` name
+   resolution. Inactive tabs intentionally close their streams to preserve
+   Wi-Fi bandwidth for robot controls.
 
-If `.local` names do not resolve, use the IP address printed by the serial
-monitor. On the Pi, set that stream URL in
+The Pi learns each newly flashed camera's DHCP address automatically. If you
+must operate an older, unflashed camera firmware, use the IP address printed by
+its serial monitor and set that stream URL in
 `/etc/stem-research-academy/config.env`, then restart the dashboard:
 
 ```bash
@@ -100,7 +104,7 @@ sudo systemctl restart stem-robot-dashboard
 | --- | --- |
 | No serial boot or repeated brownout | Use a regulated 5 V supply and short power leads; camera startup can draw more current than a USB adapter provides. |
 | `Camera initialization failed` | Confirm the Inland board uses the AI Thinker-compatible pin map and that the ribbon cable is seated. |
-| Camera joins Wi-Fi but no dashboard image | Open `/status` and `/stream` directly, then verify `LARP_A_CAMERA_URL` or `LARP_B_CAMERA_URL`. |
+| Camera joins Wi-Fi but no dashboard image | Confirm the serial log says `Camera registered with Pi dashboard.` Then open `/status` and `/stream` directly. `LARP_A_CAMERA_URL` or `LARP_B_CAMERA_URL` is the legacy fallback. |
 | Camera cannot join the hotspot | Use the 2.4 GHz `3TSahur-Swarm` network, verify the password, and keep it at least eight characters. |
 | Controls become slow while video runs | Verify only one dashboard tab is active, keep the 10 FPS firmware setting, and move the cameras closer to the Pi hotspot. |
 

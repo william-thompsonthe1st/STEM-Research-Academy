@@ -1,6 +1,6 @@
 import unittest
 
-from robot_server.scouts import ScoutRegistry
+from robot_server.scouts import CameraRegistry, ScoutRegistry
 
 
 class ScoutRegistryTests(unittest.TestCase):
@@ -22,6 +22,20 @@ class ScoutRegistryTests(unittest.TestCase):
                 registry.record("Z", "10.42.0.99")
         finally:
             registry.close()
+
+
+class CameraRegistryTests(unittest.TestCase):
+    def test_camera_registration_prefers_the_current_dhcp_address(self):
+        registry = CameraRegistry()
+        registry.record("B", "10.42.0.42", -47, 4321)
+        record = registry.snapshot("b")
+        self.assertEqual(record["ip"], "10.42.0.42")
+        self.assertEqual(registry.stream_url("b", "http://larp-b-cam.local/stream"), "http://10.42.0.42/stream")
+
+    def test_camera_registration_rejects_unknown_id(self):
+        registry = CameraRegistry()
+        with self.assertRaises(ValueError):
+            registry.record("Z", "10.42.0.99")
 
 
 if __name__ == "__main__":

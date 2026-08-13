@@ -92,6 +92,17 @@ class ServerTests(unittest.TestCase):
         self.assertIn(b"LARP Scout B", response.data)
         self.assertIn(b"3TSahur", response.data)
 
+    def test_dashboard_proxies_larp_camera_streams_through_the_pi(self):
+        response = self.client.get("/")
+        self.assertIn(b'data-stream-src="/api/scouts/a/camera.mjpg"', response.data)
+        self.assertIn(b'data-stream-src="/api/scouts/b/camera.mjpg"', response.data)
+
+    @patch.dict("robot_server.app.os.environ", {"LARP_A_CAMERA_URL": "http://10.42.0.77/stream"}, clear=False)
+    def test_explicit_camera_url_overrides_dynamic_registration(self):
+        from robot_server.app import _scout_camera_url
+
+        self.assertEqual(_scout_camera_url("a"), "http://10.42.0.77/stream")
+
     def test_staged_actuators_accept_targets_without_hardware_or_drive_changes(self):
         gimbal = self.client.post("/api/actuators/gimbal", json={"pan": 30, "tilt": -20})
         self.assertEqual(gimbal.status_code, 200)
@@ -150,6 +161,21 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.get_json()["registered"])
         record.assert_called_once_with("a", "10.42.0.31", -51, 1200, "http")
+
+    @patch("robot_server.app.camera_registry.record", return_value={
+        "id": "b", "ip": "10.42.0.42", "last_seen": 1.0,
+        "rssi": -47, "uptime_ms": 2400, "transport": "http",
+    })
+    def test_camera_can_register_its_dhcp_address(self, record):
+        response = self.client.get(
+            "/api/cameras/register?id=B&rssi=-47&uptime_ms=2400",
+            environ_base={"REMOTE_ADDR": "10.42.0.42"},
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.get_json()
+        self.assertTrue(body["registered"])
+        self.assertEqual(body["stream"], "/api/scouts/b/camera.mjpg")
+        record.assert_called_once_with("b", "10.42.0.42", -47, 2400)
 
     def test_scout_registration_rejects_unknown_id(self):
         response = self.client.get("/api/scouts/register?id=Z")
