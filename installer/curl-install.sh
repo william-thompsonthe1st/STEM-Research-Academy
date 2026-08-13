@@ -5,9 +5,9 @@
 set -Eeuo pipefail
 
 REPO_URL="${STEM_REPO_URL:-https://github.com/william-thompsonthe1st/STEM-Research-Academy.git}"
-# Keep the bootstrap and the versioned installer on the repository's deployed
-# LARP branch. Callers can still override this with STEM_REPO_BRANCH.
-REPO_BRANCH="${STEM_REPO_BRANCH:-agent/integrate-3tsahur-larp}"
+# main is the deployed project branch. Callers can still override this with
+# STEM_REPO_BRANCH when deliberately testing another reviewed branch.
+REPO_BRANCH="${STEM_REPO_BRANCH:-main}"
 RAW_REPO="${REPO_URL#https://github.com/}"
 RAW_REPO="${RAW_REPO%.git}"
 INSTALLER_URL="https://raw.githubusercontent.com/${RAW_REPO}/${REPO_BRANCH}/installer/install.sh"
