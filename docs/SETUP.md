@@ -10,6 +10,34 @@ Wire the Pi exactly as [WIRING.md](WIRING.md) specifies and attach the Logitech
 C270. Do not connect the Inland camera or ECHO boards until their correct board
 profiles are selected in Arduino IDE.
 
+### 3TSahur Raspberry Pi pinout visual
+
+All GPIO numbers below are **BCM numbers**, not physical header-pin numbers.
+
+```mermaid
+flowchart LR
+    PI["Raspberry Pi 4\nBCM GPIO"]
+    PI -->|"GPIO 5 / GPIO 6"| FL["Driver 1 · Channel A\nFront Left"]
+    PI -->|"GPIO 16 / GPIO 19"| RL["Driver 1 · Channel B\nRear Left"]
+    PI -->|"GPIO 20 / GPIO 21"| FR["Driver 2 · Channel A\nFront Right"]
+    PI -->|"GPIO 13 / GPIO 26"| RR["Driver 2 · Channel B\nRear Right"]
+```
+
+```text
+Raspberry Pi 4 (BCM)             Dual H-bridge drivers
+────────────────────             ─────────────────────
+GPIO 5  / GPIO 6  ─────────────► Driver 1 Channel A ──► Front Left
+GPIO 16 / GPIO 19 ─────────────► Driver 1 Channel B ──► Rear Left
+GPIO 20 / GPIO 21 ─────────────► Driver 2 Channel A ──► Front Right
+GPIO 13 / GPIO 26 ─────────────► Driver 2 Channel B ──► Rear Right
+
+Pi GND ─────────────────────────► Driver logic/common ground
+External motor supply ─────────► Driver motor-power input (not Pi 5 V)
+```
+
+Do not reuse one GPIO for multiple motor-driver inputs. See [WIRING.md](WIRING.md)
+for the full wiring reference.
+
 ## 2. Flash the LARP devices
 
 1. Open `firmware/larp-scout/larp-scout.ino`; set `ROBOT_ID` to A
@@ -20,6 +48,13 @@ profiles are selected in Arduino IDE.
    `/etc/stem-research-academy/config.env` into `WIFI_PASSWORD` in all four
    sketches before deployment. New installations generate this password
    automatically; never add it to `installer/install.sh` or source control.
+
+For this deployment, use the dedicated **2.4 GHz** `3TSahur-Swarm` robot
+network. Do not configure it as 5 GHz-only. Keep the Pi hotspot fixed to the
+project's validated 2.4 GHz configuration rather than using band steering.
+
+For WPA2 and IPEX-1 antenna troubleshooting, see
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## 3. Install on the Raspberry Pi
 
